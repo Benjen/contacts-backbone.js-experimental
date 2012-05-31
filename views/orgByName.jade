@@ -1,0 +1,8 @@
+h1!= title
+#flash-messages!= flashMessages
+!{breadcrumbTrail} 
+.table
+  - for d in data
+    .table-row
+      .table-cell 
+        a(href='/orgs/' + d.org.replace(' ', '_') + '/' + d._id, class='link')= d.fullname

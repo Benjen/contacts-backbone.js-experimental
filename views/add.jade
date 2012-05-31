@@ -1,0 +1,43 @@
+#flash-messages!= flashMessages
+#add-contact
+  form(method='post', action='/contact')
+    - if (put === true)
+      input(type='hidden', name='_method', value='put')
+      input(type='hidden', name='_id', value=_id)
+    ul
+      li
+        label(for='surname') Surname
+          input(type='text', name='surname', id='surname', autocomplete='off', value=formValues.surname.value, class=formValues.surname.cssClass)
+      li
+        label(for='given_name') Given name
+          input(type='text', name='given_name', id='given_name', autocomplete='off', value=formValues.given_name.value)
+      li
+        label(for='org') Organization
+          input(type='text', name='org', id='org', value=formValues.org.value)
+      li  
+        fieldset.phone 
+      li  
+        fieldset.email 
+      li
+        fieldset
+          legend Address
+          .address-field
+            ul
+              li
+                label(for='street') Street
+                input(type='text', name='street', autocomplete='off', value=formValues.street.value)
+              li
+                label(for='district') District
+                input(type='text', name='district', autocomplete='off', value=formValues.district.value)
+              li
+                label(for='city') City
+                input(type='text', name='city', autocomplete='off', value=formValues.city.value)
+              li
+                label(for='country') Country
+                input(type='text', name='country', autocomplete='off', value=formValues.country.value)
+              li
+                label(for='postcode') Postcode
+                input(type='text', name='postcode', autocomplete='off', value=formValues.postcode.value)
+      li
+        input(type='submit', value='Create')
+

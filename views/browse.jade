@@ -1,0 +1,8 @@
+#flash-messages!= flashMessages
+.table
+  for d in data
+    .table-row
+      .table-cell 
+        a(href='/#contact/view/' + d._id, class='link')= d.fullname
+      .table-cell
+        a(href='/#contact/view/' + d._id, class='link')= d.org

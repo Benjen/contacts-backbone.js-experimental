@@ -1,0 +1,20 @@
+show db
+show dbs
+use namecards
+db.find()
+db.collections
+show collections
+db.contacts.show()
+db.contacts.find()
+data = {surname: "Gunn", given_name: "Ben", organization: "GTZ", phone: "+86 (1) 12345678"}
+db.contacts.save(data)
+db.contacts.find()
+db.contacts.remove()
+db.contacts.find()
+db.dropDatabase()
+show dbs
+show dbs
+use namecards
+show collections
+db.contacts.remove()
+db.contacts.find()

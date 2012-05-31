@@ -1,0 +1,7 @@
+h1!= title
+!{breadcrumbTrail} 
+div
+  ul
+    each orgTitle in data
+      li
+        a(href='/orgs/' + orgTitle.encoded, class='link')= orgTitle.plain

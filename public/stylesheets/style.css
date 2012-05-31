@@ -1,0 +1,103 @@
+body {
+  padding: 50px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+  text-decoration: none;
+}
+h1 {
+	font-size: 1.2em;
+}
+button {
+	font-size: 1.1em;
+}
+ul {
+	list-style: none inside none;
+	padding: 0;
+	margin: 0;
+}
+#wrapper {
+	position: relative;
+	margin: 10px;
+}
+#header {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	height: 50px;
+}
+#main-title {
+}
+#flash-messages {
+}
+#primary-menu {
+  position: absolute;
+  top: 50px;
+  left: 0px;
+}
+#primary-menu ul li {
+	float: left;
+}
+#content {
+	position: absolute;
+  top: 100px;
+  left: 0px;
+  width: 800px;
+  height: 600px;
+}
+.button {
+  display: block;
+  color: black;
+  background-color: #F0F0F0;
+  padding: 10px;
+}
+.button:hover {
+  background-color: white;
+}
+.button:visited {
+  color: black;
+}
+#breadcrumb-trail {
+	border-bottom: 1px solid grey;
+	margin-bottom: 20px;
+	padding: 10px 0px;
+}
+.breadcrumb {
+  float: left;
+  padding-right: 15px;
+}
+#popup ul {
+  width: 200px;
+  border: 1px solid grey;
+  background-color: white;
+  box-shadow: 2px 2px 2px grey;
+}
+div.table {
+  display: table;
+}
+div.table-row {
+  display: table-row;
+}
+div.table-cell {
+  display: table-cell;
+  padding: 0 10px;
+}
+.form-field-error {
+	background-color: #FFBFBF;
+}
+#flash-messages {
+}
+.flash .flash-message-wrapper {
+  overflow:hidden;
+}
+.flash span.ui-icon {
+	float: left;
+	width: 16px;
+	margin-right: 10px;
+}
+.flash ul.flash-messages-list {
+  float: left;
+  width: 90%;
+  font-size: 0.8em;
+}

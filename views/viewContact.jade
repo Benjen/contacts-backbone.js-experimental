@@ -1,0 +1,27 @@
+h1= title
+#flash-messages!= flashMessages
+.controls
+  !{editButton}
+  !{deleteButton}
+.table
+  .table-row
+    .table-cell Surname
+    .table-cell= surname
+  .table-row
+    .table-cell Given name
+    .table-cell= givenName
+  .table-row
+    .table-cell Organization
+    .table-cell= org
+  - each phone in phones
+    .table-row
+      .table-cell Phone
+      .table-cell= phone.value + ' ' + phone.type
+  - each email in emails
+    .table-row
+      .table-cell Email
+      .table-cell= email.value
+  - each address in addresses
+    .table-row
+      .table-cell Address
+      .table-cell= address.street + ' ' + address.district + ' ' + address.city + ' ' + address.country + ' ' + address.postcode
