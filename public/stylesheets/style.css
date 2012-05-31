@@ -83,6 +83,16 @@ div.table-cell {
   display: table-cell;
   padding: 0 10px;
 }
+.email-field-handle {
+  border-left: 10px solid grey;
+  border-radius: 5px 0 0 5px;
+  margin-bottom: 2px;
+}
+.phone-field-handle {
+  border-left: 10px solid grey;
+  border-radius: 5px 0 0 5px;
+  margin-bottom: 2px;
+}
 .form-field-error {
 	background-color: #FFBFBF;
 }
