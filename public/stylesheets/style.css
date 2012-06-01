@@ -83,16 +83,26 @@ div.table-cell {
   display: table-cell;
   padding: 0 10px;
 }
-.email-field-handle {
-  border-left: 10px solid grey;
-  border-radius: 5px 0 0 5px;
+.drag-handle {
+  display: inline-block;
+  vertical-align: middle;
+  border-left: 10px solid #C8C8C8;
+  background-color: #C8C8C8;
+  height: 22px;
+  width: 0px;
+}
+.drag-handle:hover {
+  cursor: move;
+}
+.email-field {
+  vertical-align: middle;
+}
+.email-field-wrapper {
+  display: block;
+  position: relative;
   margin-bottom: 2px;
 }
-.phone-field-handle {
-  border-left: 10px solid grey;
-  border-radius: 5px 0 0 5px;
-  margin-bottom: 2px;
-}
+.email-fields {}
 .form-field-error {
 	background-color: #FFBFBF;
 }
@@ -110,4 +120,18 @@ div.table-cell {
   float: left;
   width: 90%;
   font-size: 0.8em;
+}
+.phone-field-wrapper {}
+.phone-field {
+  vertical-align: middle;
+}
+.phone-fields {}
+.pop-out {
+  box-shadow: 0px 0px 4px 2px #888888;
+}
+.remove-email-link {
+  vertical-align: middle;
+}
+.remove-phone-link {
+  vertical-align: middle;
 }

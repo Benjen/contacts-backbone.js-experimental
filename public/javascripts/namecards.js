@@ -2,6 +2,33 @@
  * Client side JavaScript for this app
  */
 
+Array.prototype.moveArrayElement = function(pos1, pos2) {
+  // local variables
+  var i, tmp;
+  // cast input parameters to integers
+  pos1 = parseInt(pos1, 10);
+  pos2 = parseInt(pos2, 10);
+  // if positions are different and inside array
+  if (pos1 !== pos2 && 0 <= pos1 && pos1 <= this.length && 0 <= pos2 && pos2 <= this.length) {
+    // save element from position 1
+    tmp = this[pos1];
+    // move element down and shift other elements up
+    if (pos1 < pos2) {
+      for (i = pos1; i < pos2; i++) {
+        this[i] = this[i + 1];
+      }
+    }
+    // move element up and shift other elements down
+    else {
+      for (i = pos1; i > pos2; i--) {
+        this[i] = this[i - 1];
+      }
+    }
+    // put element from position 1 to destination
+    this[pos2] = tmp;
+  }
+};
+
 (function($){
 
   $(document).ready(function() {
@@ -24,13 +51,20 @@
           surname: 'Unknown',
           given_name: '',
           org: '',
-          phone: new Array({
-            value: '',
-            type: ''
-          }),
-          email: new Array({ 
-            value: 'qwerty@hotmail.com'
-          }),
+          phone: new Array(
+            {
+              value: '1111111',
+              type: 'work'
+            },
+            {
+              value: '2222222',
+              type: 'home'
+            }
+          ),
+          email: new Array(
+            { value: 'qwerty@hotmail.com' },
+            { value: 'brent@skypey.com' }
+          ),
           address: new Array({
             street: '',
             district: '',
@@ -233,6 +267,36 @@
         this.render();
       },
       /**
+       * Attaches jQuery UI sortable effect to specified element
+       * @param element
+       *   jQuery object to which the sortable effect is to be added.
+       */
+      addSortableFields: function($emailFields) {
+        var self = this;
+        $emailFields.sortable({
+          handle: $('.drag-handle'),
+          start: function(event, ui) {
+            // Add drop shadow to object being dragged.
+            ui.item.addClass('pop-out');
+          },
+          stop: function(event, ui) {
+            // Remove drop shadow.
+            ui.item.removeClass('pop-out');
+            // Get original position of element.
+            var fieldIdTag = ui.item.find('.email-field').attr('id');
+            var fieldId = parseInt(fieldIdTag.match(/\d+/));
+            var originalIndex = fieldId;
+            // Get new position of element.
+            var newIndex = ui.item.parent().children().index(ui.item);
+            // Update model.
+            var emails = self.model.get('email');
+            emails.moveArrayElement(originalIndex, newIndex);
+            // Resent id numbering on field elements.
+            self._renumberFields();
+          }
+        });
+      },
+      /**
        * Append email field to Model and UI
        */
       appendField: function() {
@@ -252,26 +316,8 @@
           value: newEmailField.value
         }));
         // Add sortable effect if more than one field present.
-        if ($emailFields.find('.email-field').size() > 1) {
-          $emailFields.sortable({
-            update: function(event, ui) {
-            },
-            stop: function(event, ui) {
-              // Get original position of element.
-              var fieldIdTag = ui.item.find('.email-field').attr('id');
-              var fieldId = parseInt(fieldIdTag.match(/\d+/));
-              var originalIndex = fieldId;
-              // Get new position of element.
-              var newIndex = ui.item.parent().children().index(ui.item);
-              console.log('orig: ' + originalIndex + ' new: ' + newIndex);
-              // Update model.
-              var emails = self.model.get('email');
-              self.model.moveEmailElement(originalIndex, newIndex);
-              // Resent id numbering on field elements.
-              self._renumberFields();
-              console.log(self.model.get('email'));
-            }
-          });
+        if (this.model.get('email').length > 1) {
+          this.addSortableFields($emailFields);
         }
       },
       /**
@@ -281,7 +327,8 @@
         // Get index of field.
         var fieldIdTag = $(ele.currentTarget).attr('id');
         var fieldId = parseInt(fieldIdTag.match(/\d+/));
-        // Remove email from model.
+        // Remove email from model. Use clone array method to ensure that 
+        // change event will fire when using Model.set().
         var emails = _.clone(this.model.get('email'));
         emails.splice(fieldId, 1);
         this.model.set({ email: emails });
@@ -294,10 +341,10 @@
           this.appendField();
         }
         // Resent id numbering on field elements.
-//        this._renumberFields();
+        this._renumberFields();
         // Remove sortable effect if only one field remains.
         var $emailFields = $('#email-fields');
-        if ($emailFields.children('.email-field').size() <= 1) {
+        if (this.model.get('email').length <= 1) {
           $emailFields.sortable('destroy');
         }
       },
@@ -332,6 +379,11 @@
        */
       render: function() {
         this.$el.html(this._emailFieldsetTemplate({ emailFields: this.getFieldsHtml() }));
+        // Add sortable effect if more than one field present.
+        var $emailFields = $('#email-fields');
+        if (this.model.get('email').length > 1) {
+          this.addSortableFields($emailFields);
+        }
         return this;
       }
     });
@@ -359,9 +411,40 @@
        * Init
        */
       initialize: function() {
-        _.bindAll(this, 'appendField', 'getFieldsHtml', 'removeField', 'render');
+        _.bindAll(this, 'addSortableFields', 'appendField', 'getFieldsHtml', 'removeField', 'render');
         this.model = this.options.model;
         this.render();
+      },
+      /**
+       * Attaches jQuery UI sortable effect to specified element
+       * @param element
+       *   jQuery object to which the sortable effect is to be added.
+       */
+      addSortableFields: function($phoneFields) {
+        var self = this;
+        $phoneFields.sortable({
+          start: function(event, ui) {
+            // Add drop shadow to object being dragged.
+            ui.item.addClass('pop-out');
+          },
+          stop: function(event, ui) {
+            // Remove drop shadow.
+            ui.item.removeClass('pop-out');
+            // Get original position of element.
+            var fieldIdTag = ui.item.find('.phone-field').attr('id');
+            var fieldId = parseInt(fieldIdTag.match(/\d+/));
+            var originalIndex = fieldId;
+            // Get new position of element.
+            var newIndex = ui.item.parent().children().index(ui.item);
+            console.log('orig: ' + originalIndex + ' new: ' + newIndex);
+            // Update model.
+            var phones = self.model.get('phone');
+            phones.moveArrayElement(originalIndex, newIndex);
+            // Resent id numbering on field elements.
+            self._renumberFields();
+            console.log(self.model.get('phone'));
+          }
+        });
       },
       /**
        * Append phone field to Model and UI
@@ -369,22 +452,25 @@
       appendField: function() {
         var self = this;
         var newPhoneField = { 
-          value: '',
-          type: 'work'
-        };
-        // Clone Model's phone attribute array. 
+            value: '',
+            type: 'work'
+          };
+        // Clone Model's email attribute array. 
         var phones = _.clone(this.model.get('phone'));
         phones.push(newPhoneField);
         // Add updated array to Model.
         this.model.set({ phone: phones });
         // Append new field to UI.
-        $phoneFields = $('#phone-fields');
-        $phoneFields.append(this._phoneFieldTemplate({ index: null, value: newPhoneField.value }));
-        // Resent id numbering on field elements.
-        this._renumberFields();
-        // Add sortable effect if more than one field remaining.
-        if ($phoneFields.children('.phone-field').size() > 1) {
-          $phoneFields.sortable();
+        var $phoneFields = $('#phone-fields');
+        // New index will be one less than the length of the email array in Model.  
+        var newIndex = this.model.get('phone').length - 1;
+        $phoneFields.append(this._phoneFieldTemplate({ 
+          index: newIndex, 
+          value: newPhoneField.value
+        }));
+        // Add sortable effect if more than one field present.
+        if (this.model.get('phone').length > 1) {
+          this.addSortableFields($phoneFields);
         }
       },
       /**
@@ -399,12 +485,10 @@
         phones.splice(fieldId, 1);
         this.model.set({ phone: phones });
         // Remove field from UI.
-        $('#phone-field-' + fieldId).parent('.phone-field').remove();
+        $('#phone-field-' + fieldId).parent('.phone-field-wrapper').remove();
         // Ensure that phone contains a single default value, in the case 
         // that all the fields have been removed.  This is required to 
         // ensure that the form will always have at least one blank value. 
-        console.log(phones.length);
-        console.log(this.model.get('phone'));
         if (phones.length === 0) {
           this.appendField();
         }
@@ -412,7 +496,7 @@
         this._renumberFields();
         // Remove sortable effect if only one field remains.
         var $phoneFields = $('#phone-fields');
-        if ($phoneFields.children('.phone-field').size() <= 1) {
+        if (this.model.get('phone').length <= 1) {
           $phoneFields.sortable('destroy');
         }
       },
@@ -449,6 +533,11 @@
        */
       render: function() {
         this.$el.html(this._phoneFieldsetTemplate({ phoneFields: this.getFieldsHtml() }));
+        // Add sortable effect if more than one field present.
+        var $phoneFields = $('#phone-fields');
+        if (this.model.get('phone').length > 1) {
+          this.addSortableFields($phoneFields);
+        }
         return this;
       }
     });

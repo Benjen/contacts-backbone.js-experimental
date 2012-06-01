@@ -48,13 +48,15 @@ script(type='text/template', id='edit-contact-form-tpl')
   | </form>
 
 script(type='text/template', id='email-field-tpl')
-  |  <div class="email-field-handle email-field-wrapper">
+  |  <div class="email-field-wrapper">
+  |    <span class="drag-handle"></span>
   |    <input type="text" id="email-field-<%= index %>" name="email" class="email-field" value="<%= value %>" /> 
   |    <span id="remove-email-<%= index%>" class="remove-email-link">[-]</span>
   |  </div>
 
 script(type='text/template', id='phone-field-tpl')
-  |  <div class="phone-field-handle phone-field">
+  |  <div class="phone-field-wrapper">
+  |    <div class="drag-handle"></div>
   |    <input type="text" id="phone-field-<%= index %>" name="phone" class="phone-field" value="<%= value %>" /> 
   |    <select id="phone-type-<%= index %>" class="phone-type-select">
   |      <option>Work</option>
