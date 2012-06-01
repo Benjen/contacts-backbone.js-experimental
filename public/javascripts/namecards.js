@@ -54,7 +54,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
           phone: new Array(
             {
               value: '1111111',
-              type: 'work'
+              type: 'other'
             },
             {
               value: '2222222',
@@ -178,7 +178,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
       _emailFieldTemplate: _.template($('#email-field-tpl').html()),
       _phoneFieldTemplate: _.template($('#phone-field-tpl').html()),
       initialize: function() {
-        _.bindAll(this, 'getEmailFieldsHtml', 'getPhoneFieldsHtml', 'render');
+        _.bindAll(this, 'render');
         // Set options for new or existing contact.
         this.model = new Contact();
         // Add parse method since parsing is not done by collection in this 
@@ -194,43 +194,12 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         // Trigger view render, since model is unchanged (i.e. was not fetched).
         this.render();
       },
-      getEmailFieldsHtml: function() {
-        // Returns the HTML rendered email fields. 
-        var self = this;
-        var $container = $('<div></div>');
-        if (this.model.attributes.email.length > 0) {
-          // If multiple fields present.
-          _(this.model.attributes.email).each(function(item, index) {
-            $container.append($(self._emailFieldTemplate({ index: index, value: item.value })));
-          });
-        }
-        else {
-          // Single email field.
-          $container.append($(this._emailFieldTemplate({ index: '0', value: '' })));
-        } 
-        return $container.html();
-      },
-      getPhoneFieldsHtml: function() {
-        // Returns the HTML rendered phone fields. 
-        var self = this;
-        var $container = $('<div></div>');
-        if (this.model.attributes.phone.length > 0) {
-          _(this.model.attributes.phone).each(function(item, index) {
-            $container.append($(self._phoneFieldTemplate({ index: index, value: item.value })));
-          });
-        }
-        else {
-          $container.append($(this._phoneFieldTemplate({ index: '0', value: '' })));
-        } 
-        return $container.html();
-      },
       render: function() {
         var self = this;
         this.$el.hide();
+        // Render edit form template.
         this.$el.html(this._editFormTemplate({ 
-          contact: self.model.toJSON(),
-//          emailFields: this.getEmailFieldsHtml(),
-          phoneFields: this.getPhoneFieldsHtml()
+          contact: self.model.toJSON()
         }));
         // Initialize email fieldset.
         var emailFieldsetView = new EmailFieldsetView({ model: this.model });
@@ -250,7 +219,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
        * Events
        */
       events: {
-        'click button#add-email-field-button': 'appendField',
+        'click button#add-email-field-button': 'appendNewField',
         'click .remove-email-link': 'removeField'
       },
       /**
@@ -262,7 +231,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
        * Init
        */
       initialize: function() {
-        _.bindAll(this, 'appendField', 'getFieldsHtml', 'removeField', 'render');
+        _.bindAll(this, 'appendNewField', 'getFieldsHtml', 'removeField', 'render');
         this.model = this.options.model;
         this.render();
       },
@@ -299,7 +268,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
       /**
        * Append email field to Model and UI
        */
-      appendField: function() {
+      appendNewField: function() {
         var self = this;
         var newEmailField = { value: '' };
         // Clone Model's email attribute array. 
@@ -311,10 +280,11 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         var $emailFields = $('#email-fields');
         // New index will be one less than the length of the email array in Model.  
         var newIndex = this.model.get('email').length - 1;
-        $emailFields.append(this._emailFieldTemplate({ 
+        $renderedNewEmailField = $(this._emailFieldTemplate({ 
           index: newIndex, 
           value: newEmailField.value
         }));
+        $renderedNewEmailField.hide().appendTo($emailFields).fadeIn('slow');
         // Add sortable effect if more than one field present.
         if (this.model.get('email').length > 1) {
           this.addSortableFields($emailFields);
@@ -333,15 +303,17 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         emails.splice(fieldId, 1);
         this.model.set({ email: emails });
         // Remove field from UI.
-        $('#email-field-' + fieldId).parent('.email-field-wrapper').remove();
+        $('#email-field-' + fieldId).parent('.email-field-wrapper').fadeOut('fast', function() {
+          $(this).remove();
+        });
+        // Resent id numbering on field elements.
+        this._renumberFields();
         // Ensure that email contains a single default value, in the case 
         // that all the fields have been removed.  This is required to 
         // ensure that the form will always have at least one blank value. 
         if (emails.length === 0) {
-          this.appendField();
+          this.appendNewField();
         }
-        // Resent id numbering on field elements.
-        this._renumberFields();
         // Remove sortable effect if only one field remains.
         var $emailFields = $('#email-fields');
         if (this.model.get('email').length <= 1) {
@@ -399,7 +371,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
        * Events
        */
       events: {
-        'click button#add-phone-field-button': 'appendField',
+        'click button#add-phone-field-button': 'appendNewField',
         'click .remove-phone-link': 'removeField'
       },
       /**
@@ -411,7 +383,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
        * Init
        */
       initialize: function() {
-        _.bindAll(this, 'addSortableFields', 'appendField', 'getFieldsHtml', 'removeField', 'render');
+        _.bindAll(this, 'addSortableFields', 'appendNewField', 'getFieldsHtml', 'removeField', 'render');
         this.model = this.options.model;
         this.render();
       },
@@ -436,39 +408,40 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
             var originalIndex = fieldId;
             // Get new position of element.
             var newIndex = ui.item.parent().children().index(ui.item);
-            console.log('orig: ' + originalIndex + ' new: ' + newIndex);
             // Update model.
             var phones = self.model.get('phone');
             phones.moveArrayElement(originalIndex, newIndex);
             // Resent id numbering on field elements.
             self._renumberFields();
-            console.log(self.model.get('phone'));
           }
         });
       },
       /**
        * Append phone field to Model and UI
        */
-      appendField: function() {
+      appendNewField: function() {
         var self = this;
-        var newPhoneField = { 
+        var phoneField = { 
             value: '',
             type: 'work'
           };
         // Clone Model's email attribute array. 
         var phones = _.clone(this.model.get('phone'));
-        phones.push(newPhoneField);
+        phones.push(phoneField);
         // Add updated array to Model.
         this.model.set({ phone: phones });
         // Append new field to UI.
         var $phoneFields = $('#phone-fields');
-        // New index will be one less than the length of the email array in Model.  
+        // New index will be one less than the length of the phone array in Model.  
         var newIndex = this.model.get('phone').length - 1;
-        $phoneFields.append(this._phoneFieldTemplate({ 
+        $renderedNewPhoneField = $(this._phoneFieldTemplate({ 
           index: newIndex, 
-          value: newPhoneField.value
+          value: phoneField.value,
+          type: phoneField.type
         }));
-        // Add sortable effect if more than one field present.
+        // Add new field to DOM using fade in effectl
+        $renderedNewPhoneField.hide().appendTo($phoneFields).fadeIn('slow');
+        // Add sortable effect if more than one phone present.
         if (this.model.get('phone').length > 1) {
           this.addSortableFields($phoneFields);
         }
@@ -485,15 +458,17 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         phones.splice(fieldId, 1);
         this.model.set({ phone: phones });
         // Remove field from UI.
-        $('#phone-field-' + fieldId).parent('.phone-field-wrapper').remove();
+        $('#phone-field-' + fieldId).parent('.phone-field-wrapper').fadeOut('fast', function() {
+          $(this).remove();
+        });
+        // Resent id numbering on field elements.
+        this._renumberFields();
         // Ensure that phone contains a single default value, in the case 
         // that all the fields have been removed.  This is required to 
         // ensure that the form will always have at least one blank value. 
-        if (phones.length === 0) {
-          this.appendField();
+        if (this.model.get('phone').length === 0) {
+          this.appendNewField();
         }
-        // Resent id numbering on field elements.
-        this._renumberFields();
         // Remove sortable effect if only one field remains.
         var $phoneFields = $('#phone-fields');
         if (this.model.get('phone').length <= 1) {
@@ -524,7 +499,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         var $wrapper = $('<div />');
         var phones = _.clone(this.model.get('phone'));
         _.each(phones, function(item, index) {
-          $wrapper.append(this._phoneFieldTemplate({ index: index, value: item.value }));
+          $wrapper.append(this._phoneFieldTemplate({ index: index, value: item.value, type: item.type }));
         }, this);
         return $wrapper.html();
       },

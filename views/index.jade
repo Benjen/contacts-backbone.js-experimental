@@ -59,9 +59,9 @@ script(type='text/template', id='phone-field-tpl')
   |    <div class="drag-handle"></div>
   |    <input type="text" id="phone-field-<%= index %>" name="phone" class="phone-field" value="<%= value %>" /> 
   |    <select id="phone-type-<%= index %>" class="phone-type-select">
-  |      <option>Work</option>
-  |      <option>Home</option>
-  |      <option>Other</option>
+  |      <option <% if (type === 'work') { %>selected="selected"<% } %>>Work</option>
+  |      <option <% if (type === 'home') { %>selected="selected"<% } %>>Home</option>
+  |      <option <% if (type === 'other') { %>selected="selected"<% } %>>Other</option>
   |    </select>
   |    <span id="remove-phone-<%= index%>" class="remove-phone-link">[-]</span>
   |  </div>
