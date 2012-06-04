@@ -9,6 +9,7 @@ script(type='text/template', id='list-contacts-tpl')
 script(type='text/template', id='display-contact-tpl')
   | <div id="view-contact-wrapper">
   |   <h1><%- contact.given_name %> <%- contact.surname %></h1>
+  |   <button id="delete-contact-button">Delete</button>
   |   <div>Surname: <%- contact.surname %></div>
   |   <div>Given name: <%- contact.given_name %></div>
   |   <div>Organization: <%- contact.org %></div>
@@ -44,7 +45,7 @@ script(type='text/template', id='edit-contact-form-tpl')
   |     <div><label for="country">Country</label> <input type="text" name="country" value="<%- contact.address[0].country %>" /></div>
   |     <div><label for="postcode">Postcode</label> <input type="text" name="postcode" value="<%- contact.address[0].postcode %>" /></div>
   |   </fieldset>
-  |   <div><input type="submit" value="Submit" name="submit" /></div>
+  |   <div><input id="submit-button" type="submit" value="Submit" name="submit" /></div>
   | </form>
 
 script(type='text/template', id='email-field-tpl')

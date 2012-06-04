@@ -41,6 +41,45 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
     }
     
     /**
+     * Add close method for View.
+     * 
+     * Unbinds DOM elements, custom events and remove relevent HTML associated with View.   
+     */
+    Backbone.View.prototype.close = function(){
+      this.remove();
+      this.unbind();
+    };
+    
+    /**  
+     * Initialize event aggregator
+     * 
+     * Enables views to subscribe and listen for events. Allows views to be
+     * decoupled from each other. 
+     * See http://lostechies.com/derickbailey/2011/07/19/references-routing-and-the-event-aggregator-coordinating-views-in-backbone-js/
+     */
+    var eventAggrigator = _.extend({}, Backbone.Events);
+    
+    /**
+     * View Manager
+     * 
+     * Closes current view and renders new one. Used to "kill" views when 
+     * they are no longer in use (i.e. when one switches to a new view).
+     */
+    function AppView() {
+      this.showView = function(view) {
+        // Process the current view.
+        if (this.currentView){
+          this.currentView.close();
+        }
+        // Set new view as current view.
+        this.currentView = view;
+        // Render current view.
+        this.currentView.render();
+        $('#content').html(this.currentView.el);
+      };
+    };
+
+    /**
      * Contacts
      */
     var Contact = Backbone.Model.extend({
@@ -135,9 +174,30 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         this.collection.fetch();
       },
       render: function() {
-        this.$el.hide();
+        console.log('render list');
+//        this.$el.hide();
         this.$el.html(this.template({ contacts: this.collection }));
-        this.$el.fadeIn(500);
+//        this.$el.fadeIn(500);
+        console.log(this.el);
+        return this;
+      }
+    });
+    
+    /**
+     * View - Delete contact
+     * 
+     * Responsible for removing contact from the system.
+     * 
+     */
+    var DeleteContactView = Backbone.View.extend({
+      el: '#content',
+      initialize: function() {
+        _bindAll(this, 'render');
+        // Bind deleteContact method to deleteContact event in event aggragator.
+        options.eventAggregater.bind('deleteContact', this.deleteContact);
+      },
+      render: function() {
+        return this;
       }
     });
     
@@ -146,9 +206,15 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
      */
     var DisplayContactView = Backbone.View.extend({
       el: '#content',
+      events: {
+        'click #delete-contact-button': 'deleteContact'
+      },
       template: _.template($('#display-contact-tpl').html()),
       initialize: function() {
-        _.bindAll(this, 'render');
+        _.bindAll(this, 'deleteContact', 'render');
+        // Create reference to event aggregator object.
+//        this.eventAggregator = options.eventAggregator;
+//        this.eventAggregator.trigger();
         if (typeof this.options.id === 'undefined') {
           throw new Error('View DisplayContactView initialized without _id parameter.');
         }
@@ -162,8 +228,13 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         this.model.bind('change', this.render);
         this.model.fetch();
       },
+      deleteContact: function(id) {
+        // Trigger deleteContact event.
+        this.eventAggregator.trigger('deleteContact', id);
+      },
       render: function() {
         this.$el.html(this.template({ contact: this.model.attributes }));
+        return this;
       }
     });
     
@@ -173,12 +244,13 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
     var EditContactFormView = Backbone.View.extend({
       el: '#content',
       events: {
+        'click #submit-button': 'saveContact'
       },
       _editFormTemplate: _.template($('#edit-contact-form-tpl').html()),
       _emailFieldTemplate: _.template($('#email-field-tpl').html()),
       _phoneFieldTemplate: _.template($('#phone-field-tpl').html()),
       initialize: function() {
-        _.bindAll(this, 'render');
+        _.bindAll(this, 'render', 'saveContact');
         // Set options for new or existing contact.
         this.model = new Contact();
         // Add parse method since parsing is not done by collection in this 
@@ -195,6 +267,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         this.render();
       },
       render: function() {
+        console.log('render edit');
         var self = this;
         this.$el.hide();
         // Render edit form template.
@@ -207,6 +280,10 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         var phoneFieldsetView = new PhoneFieldsetView({ model: this.model });
         this.$el.fadeIn(500);
         return this;
+      },
+      saveContact: function() {
+        // Goto save confirmation page.
+        
       }
     });
     
@@ -322,7 +399,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         });
       },
       /**
-       *  Reset numbering in id attribute of email field elements 
+       *  Reset numbering in id attribute of UI email field elements
        */
       _renumberFields: function() {
         var $fields = $('#email-fields .email-field-wrapper');
@@ -478,12 +555,11 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         });
       },
       /**
-       *  Reset numbering in id attribute of phone field elements 
+       *  Reset numbering in id attribute of UI phone field elements
        */
       _renumberFields: function() {
         var $fields = $('#phone-fields .phone-field');
         $fields.each(function(index, element) {
-          console.log(index);
           $element = $(element);
           // Update input element.
           $element.attr('id', 'phone-field-' + index);
@@ -549,6 +625,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
             });
           }
         });
+        return this;
       }
     });
     
@@ -571,20 +648,23 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         'contact/delete/:id': 'confirmDelete',
         '*path': 'defaultPage'
       },
+      initialize: function(options) {
+        this.appView = options.appView;
+      },
       addContact: function() {
         // Display contact edit form.
         var editContactFormView = new EditContactFormView();
-        // Display email field in edit form.
-//        var emailFieldsetView = new EmailFieldsetView({ model: editContactFormView.model });
+//        this.appView.showView(editContactFormView);
       },
       browse: function() {
         var listContactsView = new ListContactsView();
+        this.appView.showView(listContactsView);
       },
       browseViewContact: function(id) {
         var displayContactView = new DisplayContactView({ id: id });
+//        this.appView.showView(displayContactView);
       },
       confirmDelete: function(id) {
-//        this.navigate('/#contact/delete/' + id, { trigger: false, replace: true });
         $.ajax({
           url: '/contact/delete/' + id,
           dataType: 'html',
@@ -597,11 +677,9 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         $content.html('Default');
       },
       home: function() {
-//        this.navigate('/', { trigger: false, replace: true });
         $content.html('Home');
       },
       orgs: function(orgName, id) {
-//        this.navigate('/#orgs', { trigger: false, replace: true });
         $content.html('Orgs');
         if (typeof orgName !== 'undefined') {
           $content.html(' ' + orgName);
@@ -611,7 +689,6 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         }
       },
       viewContact: function(id) {
-//        this.navigate('/#contact/view/' + id, { trigger: false, replace: true });
         $.ajax({
           url: '/contact/view/' + id,
           dataType: 'html',
@@ -622,7 +699,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
       }
     });
     
-    var clientSideRouter = new ClientSideRouter();
+    var clientSideRouter = new ClientSideRouter({ appView: new AppView() });
     Backbone.history.start();
 
     
