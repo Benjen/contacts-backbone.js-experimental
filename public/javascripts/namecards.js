@@ -67,14 +67,13 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
      */
     function AppView() {
       this.showView = function(view) {
-        // Process the current view.
+        // Close the current view.
         if (this.currentView){
           this.currentView.close();
         }
         // Set new view as current view.
         this.currentView = view;
-        // Render current view.
-        this.currentView.render();
+        // Add view to page. 
         $('#content').html(this.currentView.el);
       };
     };
@@ -165,20 +164,17 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
      * View - List of contacts 
      */
     var ListContactsView = Backbone.View.extend({
-      el: '#content',
       template: _.template($('#list-contacts-tpl').html()),
       initialize: function() {
         _.bindAll(this, 'render');
-        this.collection = new Contacts();
+        this.collection = this.options.collection;
         this.collection.bind('reset', this.render);
         this.collection.fetch();
       },
       render: function() {
-        console.log('render list');
-//        this.$el.hide();
+        this.$el.hide();
         this.$el.html(this.template({ contacts: this.collection }));
-//        this.$el.fadeIn(500);
-        console.log(this.el);
+        this.$el.fadeIn(500);
         return this;
       }
     });
@@ -205,7 +201,6 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
      * View - Display single contact 
      */
     var DisplayContactView = Backbone.View.extend({
-      el: '#content',
       events: {
         'click #delete-contact-button': 'deleteContact'
       },
@@ -215,10 +210,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         // Create reference to event aggregator object.
 //        this.eventAggregator = options.eventAggregator;
 //        this.eventAggregator.trigger();
-        if (typeof this.options.id === 'undefined') {
-          throw new Error('View DisplayContactView initialized without _id parameter.');
-        }
-        this.model = new Contact({ _id: this.options.id });
+        this.model = this.options.model;
         // Add parse method since parsing is not done by collection in this 
         // instance, as this model is not called in the scope of collection 
         // Contacts.
@@ -242,7 +234,6 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
      * View - Edit contact form 
      */
     var EditContactFormView = Backbone.View.extend({
-      el: '#content',
       events: {
         'click #submit-button': 'saveContact'
       },
@@ -251,6 +242,8 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
       _phoneFieldTemplate: _.template($('#phone-field-tpl').html()),
       initialize: function() {
         _.bindAll(this, 'render', 'saveContact');
+        // Create array to hold references to all subviews. 
+        this.subViews = new Array();
         // Set options for new or existing contact.
         this.model = new Contact();
         // Add parse method since parsing is not done by collection in this 
@@ -267,17 +260,24 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         this.render();
       },
       render: function() {
-        console.log('render edit');
         var self = this;
         this.$el.hide();
         // Render edit form template.
         this.$el.html(this._editFormTemplate({ 
           contact: self.model.toJSON()
         }));
-        // Initialize email fieldset.
+        // Initialize email fieldset subview and append to current view.
         var emailFieldsetView = new EmailFieldsetView({ model: this.model });
+        // Add to subviews array. Useful if need to process subviews later (e.g. if need to run onClose() methods on subviews).
+        this.subViews.push(emailFieldsetView);
+        emailFieldsetView.render();
+        this.$('fieldset.email').append(emailFieldsetView.$el);
         // Initialize phone fieldset.
         var phoneFieldsetView = new PhoneFieldsetView({ model: this.model });
+        // Add to subviews array. Useful if need to process subviews later (e.g. if need to run onClose() methods on subviews).
+        this.subViews.push(phoneFieldsetView);
+        phoneFieldsetView.render();
+        this.$('fieldset.phone').append(phoneFieldsetView.$el);
         this.$el.fadeIn(500);
         return this;
       },
@@ -291,7 +291,6 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
      * Email fieldset view
      */
     var EmailFieldsetView = Backbone.View.extend({
-      el: 'fieldset.email',
       /**
        * Events
        */
@@ -444,7 +443,6 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
      * Implements phone field in add contact form.
      */
     var PhoneFieldsetView = Backbone.View.extend({
-      el: 'fieldset.phone',
       /**
        * Events
        */
@@ -654,15 +652,16 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
       addContact: function() {
         // Display contact edit form.
         var editContactFormView = new EditContactFormView();
-//        this.appView.showView(editContactFormView);
+        this.appView.showView(editContactFormView);
       },
       browse: function() {
-        var listContactsView = new ListContactsView();
+        var listContactsView = new ListContactsView({ collection: new Contacts() });
         this.appView.showView(listContactsView);
       },
       browseViewContact: function(id) {
-        var displayContactView = new DisplayContactView({ id: id });
-//        this.appView.showView(displayContactView);
+        var model = new Contact({ _id: id });
+        var displayContactView = new DisplayContactView({ model: model });
+        this.appView.showView(displayContactView);
       },
       confirmDelete: function(id) {
         $.ajax({
@@ -698,8 +697,8 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         });
       }
     });
-    
-    var clientSideRouter = new ClientSideRouter({ appView: new AppView() });
+    var appView = new AppView();
+    var clientSideRouter = new ClientSideRouter({ appView: appView });
     Backbone.history.start();
 
     
