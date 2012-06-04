@@ -294,6 +294,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
        * Remove selected field from Model and UI
        */
       removeField: function(ele) {
+        var self = this;
         // Get index of field.
         var fieldIdTag = $(ele.currentTarget).attr('id');
         var fieldId = parseInt(fieldIdTag.match(/\d+/));
@@ -305,20 +306,20 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         // Remove field from UI.
         $('#email-field-' + fieldId).parent('.email-field-wrapper').fadeOut('fast', function() {
           $(this).remove();
+          // Resent id numbering on field elements.
+          self._renumberFields();
+          // Ensure that email contains a single default value, in the case 
+          // that all the fields have been removed.  This is required to 
+          // ensure that the form will always have at least one blank value. 
+          if (emails.length === 0) {
+            self.appendNewField();
+          }
+          // Remove sortable effect if only one field remains.
+          var $emailFields = $('#email-fields');
+          if (self.model.get('email').length <= 1) {
+            $emailFields.sortable('destroy');
+          }
         });
-        // Resent id numbering on field elements.
-        this._renumberFields();
-        // Ensure that email contains a single default value, in the case 
-        // that all the fields have been removed.  This is required to 
-        // ensure that the form will always have at least one blank value. 
-        if (emails.length === 0) {
-          this.appendNewField();
-        }
-        // Remove sortable effect if only one field remains.
-        var $emailFields = $('#email-fields');
-        if (this.model.get('email').length <= 1) {
-          $emailFields.sortable('destroy');
-        }
       },
       /**
        *  Reset numbering in id attribute of email field elements 
@@ -450,6 +451,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
        * Remove selected field from Model and UI
        */
       removeField: function(ele) {
+        var self = this;
         // Get index of field.
         var fieldIdTag = $(ele.currentTarget).attr('id');
         var fieldId = parseInt(fieldIdTag.match(/\d+/));
@@ -460,20 +462,20 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         // Remove field from UI.
         $('#phone-field-' + fieldId).parent('.phone-field-wrapper').fadeOut('fast', function() {
           $(this).remove();
+          // Resent id numbering on field elements.
+          self._renumberFields();
+          // Ensure that phone contains a single default value, in the case 
+          // that all the fields have been removed.  This is required to 
+          // ensure that the form will always have at least one blank value. 
+          if (self.model.get('phone').length === 0) {
+            self.appendNewField();
+          }
+          // Remove sortable effect if only one field remains.
+          var $phoneFields = $('#phone-fields');
+          if (self.model.get('phone').length <= 1) {
+            $phoneFields.sortable('destroy');
+          }  
         });
-        // Resent id numbering on field elements.
-        this._renumberFields();
-        // Ensure that phone contains a single default value, in the case 
-        // that all the fields have been removed.  This is required to 
-        // ensure that the form will always have at least one blank value. 
-        if (this.model.get('phone').length === 0) {
-          this.appendNewField();
-        }
-        // Remove sortable effect if only one field remains.
-        var $phoneFields = $('#phone-fields');
-        if (this.model.get('phone').length <= 1) {
-          $phoneFields.sortable('destroy');
-        }
       },
       /**
        *  Reset numbering in id attribute of phone field elements 
@@ -481,6 +483,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
       _renumberFields: function() {
         var $fields = $('#phone-fields .phone-field');
         $fields.each(function(index, element) {
+          console.log(index);
           $element = $(element);
           // Update input element.
           $element.attr('id', 'phone-field-' + index);
