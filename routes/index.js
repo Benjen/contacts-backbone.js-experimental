@@ -367,7 +367,32 @@ exports.editContact = function(req, res) {
 /*
  * POST add contact page.
  */
-exports.postContact = function(req, res){
+exports.postContact = function(req, res) {
+  var Contact = mongoose.model('Contact');
+  
+  var contact = new Contact(req.body);
+  var errors = new Array();
+  var emails = new Array();
+  //Save model to database.
+  contact.save(function(err) {
+    if (err) {
+      console.log(err);
+      req.flash('error', 'Contact could not be saved. Error message: ' + err.message);
+    }
+    else {
+//      req.flash('info', 'Contact saved.');
+      res.json({ 
+        flash: [
+          { type: 'info', message: 'Contact saved' }
+        ],
+        body: req.body,
+        contact: contact
+      });
+    }
+  });
+};
+/*exports.postContact = function(req, res){
+  console.log('postContact');
   var Contact = mongoose.model('Contact');
   var contact = new Contact();
   var errors = new Array();
@@ -557,7 +582,7 @@ exports.postContact = function(req, res){
     }
     res.redirect('/');
   });
-};
+};*/
 
 /*
  * GET Browse contact page.

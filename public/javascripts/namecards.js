@@ -225,7 +225,9 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         this.eventAggregator.trigger('deleteContact', id);
       },
       render: function() {
+        this.$el.hide();
         this.$el.html(this.template({ contact: this.model.attributes }));
+        this.$el.fadeIn(500);
         return this;
       }
     });
@@ -281,8 +283,24 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         this.$el.fadeIn(500);
         return this;
       },
-      saveContact: function() {
-        // Goto save confirmation page.
+      saveContact: function(event) {
+        var self = this;
+        event.preventDefault();
+        console.log(event);
+        // Update model with form values.
+        this.model.set('surname', this.$('#surname-field').val());
+        this.model.set('given_name', this.$('#given-name-field').val());
+        console.log(this.model.attributes);
+        // Save contact to database.
+        this.model.save({
+          success: function(model, response) {
+            console.log('Contact ' + self.model.get('surname') + ' saved');
+            console.log(response);
+          },
+          error: function(model, response) {
+            throw error = new Error('Error occured while saving contact.');
+          }
+        });
       }
     });
     
