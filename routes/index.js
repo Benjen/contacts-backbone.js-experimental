@@ -384,9 +384,7 @@ exports.postContact = function(req, res) {
       res.json({ 
         flash: [
           { type: 'info', message: 'Contact saved' }
-        ],
-        body: req.body,
-        contact: contact
+        ]
       });
     }
   });

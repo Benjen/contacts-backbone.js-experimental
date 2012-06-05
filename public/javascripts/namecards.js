@@ -243,7 +243,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
       _emailFieldTemplate: _.template($('#email-field-tpl').html()),
       _phoneFieldTemplate: _.template($('#phone-field-tpl').html()),
       initialize: function() {
-        _.bindAll(this, 'render', 'saveContact');
+        _.bindAll(this, 'render', 'saveContact', 'updateContact');
         // Create array to hold references to all subviews. 
         this.subViews = new Array();
         // Set options for new or existing contact.
@@ -285,12 +285,10 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
       },
       saveContact: function(event) {
         var self = this;
+        // Prevent submit event trigger from firing.
         event.preventDefault();
-        console.log(event);
         // Update model with form values.
-        this.model.set('surname', this.$('#surname-field').val());
-        this.model.set('given_name', this.$('#given-name-field').val());
-        console.log(this.model.attributes);
+        this.updateContact();
         // Save contact to database.
         this.model.save({
           success: function(model, response) {
@@ -301,6 +299,39 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
             throw error = new Error('Error occured while saving contact.');
           }
         });
+      },
+      /**
+       * Extract form values from form and update Contact.
+       */
+      updateContact: function() {
+        this.model.set('surname', this.$('#surname-field').val());
+        this.model.set('given_name', this.$('#given-name-field').val());
+        this.model.set('org', this.$('#org-field').val());
+        // Extract address form values.
+        var address = new Array({
+          street: this.$('input[name="street"]').val(),
+          district: this.$('input[name="district"]').val(),
+          city: this.$('input[name="city"]').val(),
+          country: this.$('input[name="country"]').val(),
+          postcode: this.$('input[name="postcode"]').val()
+        });
+        this.model.set('address', address);
+        // Extract email form values.
+        var emails = _.clone(this.model.get('email'));
+        var emailFields = this.$('.email-field');
+        _.each(emails, function(email, index) {
+          email.value = emailFields.eq(index).val();
+        });
+        this.model.set('email', emails);
+        // Extract phone form values.
+        var phones = _.clone(this.model.get('phone'));
+        var phoneFields = this.$('.phone-field');
+        var phoneTypes = this.$('.phone-type-select');
+        _.each(phones, function(phone, index) {
+          phone.value = phoneFields.eq(index).val();
+          phone.type = phoneTypes.eq(index).val();
+        });
+        this.model.set('phone', phones);
       }
     });
     
