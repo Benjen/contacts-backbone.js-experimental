@@ -91,7 +91,7 @@ div.table-cell {
   height: 22px;
   width: 0px;
 }
-.drag-handle:hover {
+.drag-handle-enabled {
   cursor: move;
 }
 .email-field {

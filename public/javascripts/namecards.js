@@ -318,6 +318,10 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         var self = this;
         $emailFields.sortable({
           handle: '.drag-handle',
+          create: function(event, ui) {
+            // Add move cursor on mouse over effect.
+            $emailFields.find('.drag-handle').addClass('drag-handle-enabled');
+          },
           start: function(event, ui) {
             // Add drop shadow to object being dragged.
             ui.item.addClass('pop-out');
@@ -351,13 +355,15 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         // Add updated array to Model.
         this.model.set({ email: emails });
         // Append new field to UI.
-        var $emailFields = $('#email-fields');
+        var $emailFields = this.$('#email-fields');
         // New index will be one less than the length of the email array in Model.  
         var newIndex = this.model.get('email').length - 1;
         $renderedNewEmailField = $(this._emailFieldTemplate({ 
           index: newIndex, 
           value: newEmailField.value
         }));
+        // Add move cursor on mouse over effect.
+        $renderedNewEmailField.find('.drag-handle').addClass('drag-handle-enabled');
         $renderedNewEmailField.hide().appendTo($emailFields).fadeIn('slow');
         // Add sortable effect if more than one field present.
         if (this.model.get('email').length > 1) {
@@ -389,9 +395,11 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
             self.appendNewField();
           }
           // Remove sortable effect if only one field remains.
-          var $emailFields = $('#email-fields');
+          var $emailFields = self.$('#email-fields');
           if (self.model.get('email').length <= 1) {
             $emailFields.sortable('destroy');
+            // Remove move cursor on mouse over effect.
+            $emailFields.find('.drag-handle').removeClass('drag-handle-enabled');
           }
         });
       },
@@ -399,7 +407,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
        *  Reset numbering in id attribute of UI email field elements
        */
       _renumberFields: function() {
-        var $fields = $('#email-fields .email-field-wrapper');
+        var $fields = this.$('#email-fields .email-field-wrapper');
         $fields.each(function(index, element) {
           $element = $(element);
           // Update input element.
@@ -469,6 +477,9 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         var self = this;
         $phoneFields.sortable({
           handle: '.drag-handle',
+          create: function(event, ui) {
+            $phoneFields.find('.drag-handle').addClass('drag-handle-enabled');
+          },
           start: function(event, ui) {
             // Add drop shadow to object being dragged.
             ui.item.addClass('pop-out');
@@ -505,7 +516,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         // Add updated array to Model.
         this.model.set({ phone: phones });
         // Append new field to UI.
-        var $phoneFields = $('#phone-fields');
+        var $phoneFields = this.$('#phone-fields');
         // New index will be one less than the length of the phone array in Model.  
         var newIndex = this.model.get('phone').length - 1;
         $renderedNewPhoneField = $(this._phoneFieldTemplate({ 
@@ -513,6 +524,8 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
           value: phoneField.value,
           type: phoneField.type
         }));
+        // Add move cursor on mouse over effect.
+        $renderedNewPhoneField.find('.drag-handle').addClass('drag-handle-enabled');
         // Add new field to DOM using fade in effectl
         $renderedNewPhoneField.hide().appendTo($phoneFields).fadeIn('slow');
         // Add sortable effect if more than one phone present.
@@ -533,7 +546,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         phones.splice(fieldId, 1);
         this.model.set({ phone: phones });
         // Remove field from UI.
-        $('#phone-field-' + fieldId).parent('.phone-field-wrapper').fadeOut('fast', function() {
+        this.$('#phone-field-' + fieldId).parent('.phone-field-wrapper').fadeOut('fast', function() {
           $(this).remove();
           // Resent id numbering on field elements.
           self._renumberFields();
@@ -544,9 +557,11 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
             self.appendNewField();
           }
           // Remove sortable effect if only one field remains.
-          var $phoneFields = $('#phone-fields');
+          var $phoneFields = self.$('#phone-fields');
           if (self.model.get('phone').length <= 1) {
             $phoneFields.sortable('destroy');
+            // Remove move cursor on mouse over effect.
+            $phoneFields.find('.drag-handle').removeClass('drag-handle-enabled');
           }  
         });
       },
@@ -554,7 +569,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
        *  Reset numbering in id attribute of UI phone field elements
        */
       _renumberFields: function() {
-        var $fields = $('#phone-fields .phone-field');
+        var $fields = this.$('#phone-fields .phone-field');
         $fields.each(function(index, element) {
           $element = $(element);
           // Update input element.
