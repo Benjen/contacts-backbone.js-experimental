@@ -266,13 +266,13 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
         this.$el.html(this._editFormTemplate({ 
           contact: self.model.toJSON()
         }));
-        // Initialize email fieldset subview and append to current view.
+        // Attach email fieldset subview.
         var emailFieldsetView = new EmailFieldsetView({ model: this.model });
         // Add to subviews array. Useful if need to process subviews later (e.g. if need to run onClose() methods on subviews).
         this.subViews.push(emailFieldsetView);
         emailFieldsetView.render();
         this.$('fieldset.email').append(emailFieldsetView.$el);
-        // Initialize phone fieldset.
+        // Attach phone fieldset.
         var phoneFieldsetView = new PhoneFieldsetView({ model: this.model });
         // Add to subviews array. Useful if need to process subviews later (e.g. if need to run onClose() methods on subviews).
         this.subViews.push(phoneFieldsetView);
@@ -283,7 +283,6 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
       },
       saveContact: function() {
         // Goto save confirmation page.
-        
       }
     });
     
@@ -307,9 +306,8 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
        * Init
        */
       initialize: function() {
-        _.bindAll(this, 'appendNewField', 'getFieldsHtml', 'removeField', 'render');
+        _.bindAll(this, 'addSortableFields', 'appendNewField', 'getFieldsHtml', 'removeField', 'render');
         this.model = this.options.model;
-        this.render();
       },
       /**
        * Attaches jQuery UI sortable effect to specified element
@@ -319,7 +317,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
       addSortableFields: function($emailFields) {
         var self = this;
         $emailFields.sortable({
-          handle: $('.drag-handle'),
+          handle: '.drag-handle',
           start: function(event, ui) {
             // Add drop shadow to object being dragged.
             ui.item.addClass('pop-out');
@@ -429,7 +427,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
       render: function() {
         this.$el.html(this._emailFieldsetTemplate({ emailFields: this.getFieldsHtml() }));
         // Add sortable effect if more than one field present.
-        var $emailFields = $('#email-fields');
+        var $emailFields = this.$('#email-fields');
         if (this.model.get('email').length > 1) {
           this.addSortableFields($emailFields);
         }
@@ -461,7 +459,6 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
       initialize: function() {
         _.bindAll(this, 'addSortableFields', 'appendNewField', 'getFieldsHtml', 'removeField', 'render');
         this.model = this.options.model;
-        this.render();
       },
       /**
        * Attaches jQuery UI sortable effect to specified element
@@ -471,6 +468,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
       addSortableFields: function($phoneFields) {
         var self = this;
         $phoneFields.sortable({
+          handle: '.drag-handle',
           start: function(event, ui) {
             // Add drop shadow to object being dragged.
             ui.item.addClass('pop-out');
@@ -586,7 +584,7 @@ Array.prototype.moveArrayElement = function(pos1, pos2) {
       render: function() {
         this.$el.html(this._phoneFieldsetTemplate({ phoneFields: this.getFieldsHtml() }));
         // Add sortable effect if more than one field present.
-        var $phoneFields = $('#phone-fields');
+        var $phoneFields = this.$('#phone-fields');
         if (this.model.get('phone').length > 1) {
           this.addSortableFields($phoneFields);
         }
