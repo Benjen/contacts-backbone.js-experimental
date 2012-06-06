@@ -2,35 +2,43 @@
  * Client side JavaScript for this app
  */
 
-Array.prototype.moveArrayElement = function(pos1, pos2) {
-  // local variables
-  var i, tmp;
-  // cast input parameters to integers
-  pos1 = parseInt(pos1, 10);
-  pos2 = parseInt(pos2, 10);
-  // if positions are different and inside array
-  if (pos1 !== pos2 && 0 <= pos1 && pos1 <= this.length && 0 <= pos2 && pos2 <= this.length) {
-    // save element from position 1
-    tmp = this[pos1];
-    // move element down and shift other elements up
-    if (pos1 < pos2) {
-      for (i = pos1; i < pos2; i++) {
-        this[i] = this[i + 1];
-      }
-    }
-    // move element up and shift other elements down
-    else {
-      for (i = pos1; i > pos2; i--) {
-        this[i] = this[i - 1];
-      }
-    }
-    // put element from position 1 to destination
-    this[pos2] = tmp;
-  }
-};
-
 MyApp = (function(Backbone, $) {
   
+  /**
+   * Move array element from one position to another
+   * 
+   * @param Int pos1
+   *   Index of the element to move.
+   * @param Int pos2
+   *   Index of the new element location.
+   */
+  Array.prototype.moveArrayElement = function(pos1, pos2) {
+    // local variables
+    var i, tmp;
+    // cast input parameters to integers
+    pos1 = parseInt(pos1, 10);
+    pos2 = parseInt(pos2, 10);
+    // if positions are different and inside array
+    if (pos1 !== pos2 && 0 <= pos1 && pos1 <= this.length && 0 <= pos2 && pos2 <= this.length) {
+      // save element from position 1
+      tmp = this[pos1];
+      // move element down and shift other elements up
+      if (pos1 < pos2) {
+        for (i = pos1; i < pos2; i++) {
+          this[i] = this[i + 1];
+        }
+      }
+      // move element up and shift other elements down
+      else {
+        for (i = pos1; i > pos2; i--) {
+          this[i] = this[i - 1];
+        }
+      }
+      // put element from position 1 to destination
+      this[pos2] = tmp;
+    }
+  };
+
   /**
    * Create namespace for storing data on client-side.
    */
@@ -41,11 +49,14 @@ MyApp = (function(Backbone, $) {
   /**
    * Add close method for View.
    * 
-   * Unbinds DOM elements, custom events and remove relevent HTML associated with View.   
+   * Unbinds DOM elements, custom events and remove relevant HTML associated with View.   
    */
   Backbone.View.prototype.close = function(){
     this.remove();
     this.unbind();
+    if (this.onClose){
+      this.onClose();
+    }
   };
   
   /**  
@@ -56,6 +67,9 @@ MyApp = (function(Backbone, $) {
    * See http://lostechies.com/derickbailey/2011/07/19/references-routing-and-the-event-aggregator-coordinating-views-in-backbone-js/
    */
   var eventAggrigator = _.extend({}, Backbone.Events);
+  eventAggrigator.on('submitContactEditForm', function() {
+    console.log('submitContactEditForm');
+  });
   
   /**
    * View Manager
@@ -162,9 +176,9 @@ MyApp = (function(Backbone, $) {
    * View - List of contacts 
    */
   var ListContactsView = Backbone.View.extend({
-//    template: _.template($('#list-contacts-tpl').html()),
     initialize: function() {
       _.bindAll(this, 'render');
+      // Add templates.
       this.template = _.template($('#list-contacts-tpl').html());
       this.collection = this.options.collection;
       this.collection.bind('reset', this.render);
@@ -203,7 +217,6 @@ MyApp = (function(Backbone, $) {
     events: {
       'click #delete-contact-button': 'deleteContact'
     },
-//    template: _.template($('#display-contact-tpl').html()),
     initialize: function() {
       _.bindAll(this, 'deleteContact', 'render');
       // define template in initialize function to ensure DOM has loaded.
@@ -240,11 +253,9 @@ MyApp = (function(Backbone, $) {
     events: {
       'click #submit-button': 'saveContact'
     },
-//    _editFormTemplate: _.template($('#edit-contact-form-tpl').html()),
-//    _emailFieldTemplate: _.template($('#email-field-tpl').html()),
-//    _phoneFieldTemplate: _.template($('#phone-field-tpl').html()),
     initialize: function() {
       _.bindAll(this, 'render', 'saveContact', 'updateContact');
+      // Add templates.
       this._editFormTemplate = _.template($('#edit-contact-form-tpl').html());
       this._emailFieldTemplate = _.template($('#email-field-tpl').html());
       this._phoneFieldTemplate = _.template($('#phone-field-tpl').html());
@@ -264,6 +275,19 @@ MyApp = (function(Backbone, $) {
       }
       // Trigger view render, since model is unchanged (i.e. was not fetched).
       this.render();
+    },
+    /**
+     * Contains code to run when closing view
+     * 
+     * Used for unbinding Model and Collection events.
+     */
+    onClose: function() {
+      // Run onClose method of any sub views.
+      _.each(this.subViews, function(view, index) {
+        if (view.onClose) {
+          view.onClose();
+        }
+      });
     },
     render: function() {
       var self = this;
@@ -289,11 +313,13 @@ MyApp = (function(Backbone, $) {
     },
     saveContact: function(event) {
       var self = this;
+      eventAggrigator.trigger('submitContactEditForm');
       // Prevent submit event trigger from firing.
       event.preventDefault();
       // Update model with form values.
       this.updateContact();
       // Save contact to database.
+      console.log('Saving contact now...');
       this.model.save({
         success: function(model, response) {
           console.log('Contact ' + self.model.get('surname') + ' saved');
@@ -320,13 +346,6 @@ MyApp = (function(Backbone, $) {
         postcode: this.$('input[name="postcode"]').val()
       });
       this.model.set('address', address);
-      // Extract email form values.
-      var emails = _.clone(this.model.get('email'));
-      var emailFields = this.$('.email-field');
-      _.each(emails, function(email, index) {
-        email.value = emailFields.eq(index).val();
-      });
-      this.model.set('email', emails);
       // Extract phone form values.
       var phones = _.clone(this.model.get('phone'));
       var phoneFields = this.$('.phone-field');
@@ -355,6 +374,7 @@ MyApp = (function(Backbone, $) {
      */
     initialize: function() {
       _.bindAll(this, 'addSortableFields', 'appendNewField', 'getFieldsHtml', 'removeField', 'render');
+      eventAggrigator.bind('submitContactEditForm', this.setEmailValues);
       // Add templates.
       this._emailFieldTemplate = _.template($('#email-field-tpl').html());
       this._emailFieldsetTemplate = _.template($('#email-fieldset-tpl').html());
@@ -422,6 +442,14 @@ MyApp = (function(Backbone, $) {
       }
     },
     /**
+     * Contains code to run when closing view
+     * 
+     * Used for unbinding Model and Collection events.
+     */
+    onClose: function() {
+      console.log('EmailFieldsetView.onClose()');
+    },
+    /**
      * Remove selected field from Model and UI
      */
     removeField: function(ele) {
@@ -466,6 +494,18 @@ MyApp = (function(Backbone, $) {
         // Update remove email field link element.
         $element.children('.remove-email-link').attr('id', 'remove-email-' + index);
       });
+    },
+    setEmailValues: function() {
+      
+      console.log(this.model);
+      // Extract email form values.
+//      var emails = _.clone(this.model.get('email'));
+//      var emailFields = this.$('.email-field');
+//      _.each(emails, function(email, index) {
+//        email.value = emailFields.eq(index).val();
+//      });
+//      this.model.set('email', emails);
+      console.log('finished extracting emails');
     },
     /**
      * Get html of rendered fields
@@ -582,6 +622,14 @@ MyApp = (function(Backbone, $) {
       if (this.model.get('phone').length > 1) {
         this.addSortableFields($phoneFields);
       }
+    },
+    /**
+     * Contains code to run when closing view
+     * 
+     * Used for unbinding Model and Collection events.
+     */
+    onClose: function() {
+      console.log('PhoneFieldsetView.onClose()');
     },
     /**
      * Remove selected field from Model and UI
