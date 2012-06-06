@@ -331,7 +331,7 @@ MyApp = (function(Backbone, $) {
       });
     },
     /**
-     * Extract form values from form and update Contact.
+     * Extract form values and update Contact.
      */
     updateContact: function() {
       this.model.set('surname', this.$('#surname-field').val());
@@ -346,15 +346,6 @@ MyApp = (function(Backbone, $) {
         postcode: this.$('input[name="postcode"]').val()
       });
       this.model.set('address', address);
-      // Extract phone form values.
-      var phones = _.clone(this.model.get('phone'));
-      var phoneFields = this.$('.phone-field');
-      var phoneTypes = this.$('.phone-type-select');
-      _.each(phones, function(phone, index) {
-        phone.value = phoneFields.eq(index).val();
-        phone.type = phoneTypes.eq(index).val();
-      });
-      this.model.set('phone', phones);
     }
   });
   
@@ -373,7 +364,8 @@ MyApp = (function(Backbone, $) {
      * Init
      */
     initialize: function() {
-      _.bindAll(this, 'addSortableFields', 'appendNewField', 'getFieldsHtml', 'removeField', 'render');
+      _.bindAll(this, 'addSortableFields', 'appendNewField', 'getFieldsHtml', 'removeField', 'render', 'setEmailValues');
+      // Bind to event aggregator.
       eventAggrigator.bind('submitContactEditForm', this.setEmailValues);
       // Add templates.
       this._emailFieldTemplate = _.template($('#email-field-tpl').html());
@@ -495,17 +487,17 @@ MyApp = (function(Backbone, $) {
         $element.children('.remove-email-link').attr('id', 'remove-email-' + index);
       });
     },
+    /**
+     * Extract form values and update Model 
+     */
     setEmailValues: function() {
-      
-      console.log(this.model);
       // Extract email form values.
-//      var emails = _.clone(this.model.get('email'));
-//      var emailFields = this.$('.email-field');
-//      _.each(emails, function(email, index) {
-//        email.value = emailFields.eq(index).val();
-//      });
-//      this.model.set('email', emails);
-      console.log('finished extracting emails');
+      var emails = _.clone(this.model.get('email'));
+      var emailFields = this.$('.email-field');
+      _.each(emails, function(email, index) {
+        email.value = emailFields.eq(index).val();
+      });
+      this.model.set('email', emails);
     },
     /**
      * Get html of rendered fields
@@ -551,7 +543,9 @@ MyApp = (function(Backbone, $) {
      * Init
      */
     initialize: function() {
-      _.bindAll(this, 'addSortableFields', 'appendNewField', 'getFieldsHtml', 'removeField', 'render');
+      _.bindAll(this, 'addSortableFields', 'appendNewField', 'getFieldsHtml', 'removeField', 'render', 'setPhoneValues');
+      // Bind to event aggregator.
+      eventAggrigator.bind('submitContactEditForm', this.setPhoneValues);
       // Add templates.
       this._phoneFieldTemplate = _.template($('#phone-field-tpl').html());
       this._phoneFieldsetTemplate = _.template($('#phone-fieldset-tpl').html());
@@ -677,6 +671,20 @@ MyApp = (function(Backbone, $) {
         // Update remove phone field link element.
         $element.siblings('.remove-phone-link').attr('id', 'remove-phone-' + index);
       });
+    },
+    /**
+     * Extract form values and update Model 
+     */
+    setPhoneValues: function() {
+      // Extract phone form values.
+      var phones = _.clone(this.model.get('phone'));
+      var phoneFields = this.$('.phone-field');
+      var phoneTypes = this.$('.phone-type-select');
+      _.each(phones, function(phone, index) {
+        phone.value = phoneFields.eq(index).val();
+        phone.type = phoneTypes.eq(index).val();
+      });
+      this.model.set('phone', phones);
     },
     /**
      * Get html of rendered fields
