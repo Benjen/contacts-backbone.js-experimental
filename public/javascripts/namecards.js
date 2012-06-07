@@ -45,7 +45,7 @@ MyApp = (function(Backbone, $) {
   if (typeof window.Namecards === 'undefined') {
     window.Namecards = new Object();
   }
-  
+
   /**
    * Add close method for View.
    * 
@@ -68,7 +68,7 @@ MyApp = (function(Backbone, $) {
    */
   var eventAggrigator = _.extend({}, Backbone.Events);
   eventAggrigator.on('submitContactEditForm', function() {
-    console.log('submitContactEditForm');
+    console.log('Contact edit form submit event triggered');
   });
   
   /**
@@ -273,7 +273,7 @@ MyApp = (function(Backbone, $) {
         // Retrieve contact
         this.model.fetch();
       }
-      // Trigger view render, since model is unchanged (i.e. was not fetched).
+      // Manually trigger view render, since model is unchanged (i.e. was not fetched).
       this.render();
     },
     /**
@@ -313,17 +313,18 @@ MyApp = (function(Backbone, $) {
     },
     saveContact: function(event) {
       var self = this;
-      eventAggrigator.trigger('submitContactEditForm');
       // Prevent submit event trigger from firing.
       event.preventDefault();
+      // Trigger form submit event.
+      eventAggrigator.trigger('submitContactEditForm');
       // Update model with form values.
       this.updateContact();
       // Save contact to database.
-      console.log('Saving contact now...');
       this.model.save({
         success: function(model, response) {
           console.log('Contact ' + self.model.get('surname') + ' saved');
           console.log(response);
+          alert('saved');
         },
         error: function(model, response) {
           throw error = new Error('Error occured while saving contact.');
@@ -439,7 +440,6 @@ MyApp = (function(Backbone, $) {
      * Used for unbinding Model and Collection events.
      */
     onClose: function() {
-      console.log('EmailFieldsetView.onClose()');
     },
     /**
      * Remove selected field from Model and UI
@@ -623,7 +623,6 @@ MyApp = (function(Backbone, $) {
      * Used for unbinding Model and Collection events.
      */
     onClose: function() {
-      console.log('PhoneFieldsetView.onClose()');
     },
     /**
      * Remove selected field from Model and UI
@@ -748,6 +747,88 @@ MyApp = (function(Backbone, $) {
   
   // Create instance of OrgTextFieldView.
 //  var orgTextFieldView = new OrgTextFieldView();
+
+  /**
+   * Menu Item Model
+   */
+  var MenuItem = Backbone.Model.extend();
+  
+  /**
+   * Menu Collection
+   */
+  var Menu = Backbone.Collection.extend({
+    model: MenuItem,
+    comparator: function(menuItem) {
+      // Collection is sorted by 'order'. Lower numbers will 
+      // come before higher numbers. Where value of order is the same, then they will be sorted alphabetically.
+      var order = menuItem.get('order');
+      if (order < 0) {
+        throw error = new Error('Order attribute of Backbone Model MenuItem cannot be negative.');
+      }
+      if (order > 999) {
+        throw error = new Error('Order attribute of Backbone Model MenuItem cannot be larger than 999.');
+      }
+      // Convert value of order to String and pad to 3 digits. This prevents 12 coming before 3 when sorting.
+      
+      if (order < 10) {
+        order = '00' + order;
+      }
+      else if (order < 100) {
+        order = '0' + order;
+      }
+      // Convert value of text to lower case.  Prevents issues of capitalization affecting sort order.
+      var text = menuItem.get('text').toLocaleLowerCase();
+      return order + text;
+    }
+  });
+  
+  /**
+   * Menu Item View
+   */
+  var MenuItemView = Backbone.View.extend({
+    tagName: 'li',
+    model: MenuItem,
+    initialize: function() {
+      _.bindAll(this, 'render');
+    },
+    render: function() {
+      var element = '<a id="browse-button" class="button" title="' + this.model.get('text') + '" href="/' + this.model.get('url') + '"><span>' + this.model.get('text') + '</span></a>';
+      this.$el.append(element);
+      return this;
+    }
+  });
+  
+  /**
+   * Menu View 
+   */
+  var PrimaryMenuView = Backbone.View.extend({
+    el: '#primary-menu',
+    events: {
+      'click .button': 'menuButtonClicked'
+    },
+    initialize: function() {
+      _.bindAll(this, 'menuButtonClicked', 'render');
+      this.collection = this.options.collection;
+      this.collection.bind('refresh', this.render);
+      this.render();
+    },
+    menuButtonClicked: function(event) {
+      // Remove previously applied 'button-active' classes from buttons.
+      this.$('.button').each(function(index, element) {
+        $(element).removeClass('button-active');
+      });
+      // Apply class to newly pressed button.
+      $(event.currentTarget).addClass('button-active');
+    },
+    render: function() {
+      this.$el.html('<ul></ul>');
+      this.collection.each(function(item, index) {
+        var menuItemView = new MenuItemView({ model: item });
+        this.$('ul').append(menuItemView.render().el);
+      });
+      return this;
+    }
+  });
   
   /**
    * Page routes
@@ -767,6 +848,10 @@ MyApp = (function(Backbone, $) {
     },
     initialize: function(options) {
       this.appView = options.appView;
+      // Create menu collection.
+      this.menu = new Menu();
+      this.menu.add(options.menuItems);
+      var primaryMenuView = new PrimaryMenuView({ collection: this.menu });
       this.$content = $('#content');
     },
     addContact: function() {
@@ -824,9 +909,12 @@ MyApp = (function(Backbone, $) {
    * Init method for this module
    */
   return {
-    init: function() {
+    init: function(options) {
       var appView = new AppView();
-      var clientSideRouter = new ClientSideRouter({ appView: appView });
+      var clientSideRouter = new ClientSideRouter({ 
+        appView: appView,
+        menuItems: options.menuItems
+      });
       Backbone.history.start();
       console.log('init');
     }
@@ -836,8 +924,36 @@ MyApp = (function(Backbone, $) {
 
 (function($){
 
+  var menuItems = new Array(
+    {
+      url: '#browse',
+      text: 'Browse',
+      order: 0
+    },
+    {
+      url: '#orgs',
+      text: 'Organizations',
+      order: 1
+    },
+    {
+      url: '#events',
+      text: 'Events',
+      order: 2
+    },
+    {
+      url: '#contact/add',
+      text: 'Add',
+      order: 3
+    },
+    {
+      url: '#email',
+      text: 'Email',
+      order: 4
+    }
+  );
+
   $(document).ready(function() {
-    MyApp.init();
+    MyApp.init({ menuItems: menuItems });
   });
 
 })(jQuery);
