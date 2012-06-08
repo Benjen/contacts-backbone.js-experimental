@@ -377,13 +377,16 @@ exports.postContact = function(req, res) {
   contact.save(function(err) {
     if (err) {
       console.log(err);
-      req.flash('error', 'Contact could not be saved. Error message: ' + err.message);
-    }
-    else {
-//      req.flash('info', 'Contact saved.');
       res.json({ 
         flash: [
-          { type: 'info', text: 'Contact saved', sticky: true }
+          { type: 'error', text: 'Contact could not be saved. Error message: ' + err.message, sticky: true }
+        ]
+      }, 500);
+    }
+    else {
+      res.json({ 
+        flash: [
+          { type: 'info', text: 'Contact saved' }
         ]
       }, 200);
     }

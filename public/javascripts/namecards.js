@@ -325,8 +325,9 @@ MyApp = (function(Backbone, $) {
       // Save contact to database.
       this.model.save(this.model.attributes, {
         success: function(model, response) {
-          console.log(response);
-          Messenger.trigger('newMessages', response.flash);
+          if (typeof response.flash !== 'undefined') {
+            Messenger.trigger('newMessages', response.flash);
+          }
         },
         error: function(model, response) {
           throw error = new Error('Error occured while saving contact.');
@@ -842,6 +843,8 @@ MyApp = (function(Backbone, $) {
     }
   });
 
+  
+  
   /**
    * Event aggregator for flash message system
    */
@@ -890,7 +893,7 @@ MyApp = (function(Backbone, $) {
   });
   
   /**
-   * Messenger View
+   * Messenges View
    */
   var FlashMessagesView = Backbone.View.extend({
     el: '#flash-messages',
@@ -902,10 +905,6 @@ MyApp = (function(Backbone, $) {
       // Bind collection to view.
       this.collection = new Messages();
       this.collection.bind('add', this.appendMessage);
-//      this.collection.add([
-//        new Message({ type: 'info', text: 'Something completed successfully.', sticky: true}),
-//        new Message({ type: 'error', text: 'Something went wrong.'})
-//      ]);
     },
     render: function() {
       this.$el.html('<ul></ul>');
@@ -914,12 +913,22 @@ MyApp = (function(Backbone, $) {
     appendMessage: function(message) {
       var messageModel = new Message(message);
       var flashMessageView = new FlashMessageView({ model: messageModel });
-      this.$('ul').append(flashMessageView.render().el);
+      var $newFlashMessage = $(flashMessageView.render().el);
+      $newFlashMessage
+        .hide()
+        .appendTo(this.$('ul'))
+        .fadeIn();
+      // Remove message if not sticky after time delay. 
+      if (messageModel.get('sticky') === false) {
+        setTimeout(function() {
+          $newFlashMessage.fadeOut(500, function() {
+            $newFlashMessage.remove();
+          });
+        }, 2000);
+      }
     },
     newMessages: function(messages) {
       var self = this;
-      console.log('newMessages');
-      console.log(messages);
       _.each(messages, function(message, index) {
         self.appendMessage(message);
       });
