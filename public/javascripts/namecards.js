@@ -60,15 +60,18 @@ MyApp = (function(Backbone, $) {
   };
   
   /**  
-   * Initialize event aggregator
+   * Event Aggregator
    * 
    * Enables views to subscribe and listen for events. Allows views to be
    * decoupled from each other. 
    * See http://lostechies.com/derickbailey/2011/07/19/references-routing-and-the-event-aggregator-coordinating-views-in-backbone-js/
    */
   var eventAggrigator = _.extend({}, Backbone.Events);
-  eventAggrigator.on('submitContactEditForm', function() {
+  eventAggrigator.on('submit:contactEditForm', function() {
     console.log('Contact edit form submit event triggered');
+  });
+  eventAggrigator.on('load:page', function() {
+    console.log('Load page event triggered');
   });
   
   /**
@@ -316,7 +319,7 @@ MyApp = (function(Backbone, $) {
       // Prevent submit event trigger from firing.
       event.preventDefault();
       // Trigger form submit event.
-      eventAggrigator.trigger('submitContactEditForm');
+      eventAggrigator.trigger('submit:contactEditForm');
       // Update model with form values.
       this.updateContact();
       // Save contact to database.
@@ -367,7 +370,7 @@ MyApp = (function(Backbone, $) {
     initialize: function() {
       _.bindAll(this, 'addSortableFields', 'appendNewField', 'getFieldsHtml', 'removeField', 'render', 'setEmailValues');
       // Bind to event aggregator.
-      eventAggrigator.bind('submitContactEditForm', this.setEmailValues);
+      eventAggrigator.bind('submit:contactEditForm', this.setEmailValues);
       // Add templates.
       this._emailFieldTemplate = _.template($('#email-field-tpl').html());
       this._emailFieldsetTemplate = _.template($('#email-fieldset-tpl').html());
@@ -545,7 +548,7 @@ MyApp = (function(Backbone, $) {
     initialize: function() {
       _.bindAll(this, 'addSortableFields', 'appendNewField', 'getFieldsHtml', 'removeField', 'render', 'setPhoneValues');
       // Bind to event aggregator.
-      eventAggrigator.bind('submitContactEditForm', this.setPhoneValues);
+      eventAggrigator.bind('submit:contactEditForm', this.setPhoneValues);
       // Add templates.
       this._phoneFieldTemplate = _.template($('#phone-field-tpl').html());
       this._phoneFieldsetTemplate = _.template($('#phone-fieldset-tpl').html());
@@ -792,7 +795,7 @@ MyApp = (function(Backbone, $) {
       _.bindAll(this, 'render');
     },
     render: function() {
-      var element = '<a id="browse-button" class="button" title="' + this.model.get('text') + '" href="/' + this.model.get('url') + '"><span>' + this.model.get('text') + '</span></a>';
+      var element = '<a class="button" title="' + this.model.get('text') + '" href="' + this.model.get('url') + '"><span>' + this.model.get('text') + '</span></a>';
       this.$el.append(element);
       return this;
     }
@@ -807,10 +810,13 @@ MyApp = (function(Backbone, $) {
       'click .button': 'menuButtonClicked'
     },
     initialize: function() {
-      _.bindAll(this, 'menuButtonClicked', 'render');
+      _.bindAll(this, 'menuButtonClicked', 'render', 'setActiveButton');
       this.collection = this.options.collection;
       this.collection.bind('refresh', this.render);
       this.render();
+      // Set menu button corresponding to loaded page to active state.
+      var uri = window.location.pathname + window.location.hash;
+      this.$('a[href="' + uri + '"]').addClass('button-active');
     },
     menuButtonClicked: function(event) {
       // Remove previously applied 'button-active' classes from buttons.
@@ -827,6 +833,13 @@ MyApp = (function(Backbone, $) {
         this.$('ul').append(menuItemView.render().el);
       });
       return this;
+    },
+    /**
+     * Add active button effect to menu button based on current page URI
+     */
+    setActiveButton: function() {
+      var uri = window.location.pathname + window.location.hash;
+      this.$('a[href="' + uri + '"]').addClass('button-active');
     }
   });
   
@@ -926,27 +939,27 @@ MyApp = (function(Backbone, $) {
 
   var menuItems = new Array(
     {
-      url: '#browse',
+      url: '/#browse',
       text: 'Browse',
       order: 0
     },
     {
-      url: '#orgs',
+      url: '/#orgs',
       text: 'Organizations',
       order: 1
     },
     {
-      url: '#events',
+      url: '/#events',
       text: 'Events',
       order: 2
     },
     {
-      url: '#contact/add',
+      url: '/#contact/add',
       text: 'Add',
       order: 3
     },
     {
-      url: '#email',
+      url: '/#email',
       text: 'Email',
       order: 4
     }
