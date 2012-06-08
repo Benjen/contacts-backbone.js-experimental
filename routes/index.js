@@ -383,9 +383,9 @@ exports.postContact = function(req, res) {
 //      req.flash('info', 'Contact saved.');
       res.json({ 
         flash: [
-          { type: 'info', message: 'Contact saved' }
+          { type: 'info', text: 'Contact saved', sticky: true }
         ]
-      });
+      }, 200);
     }
   });
 };

@@ -80,6 +80,12 @@ script(type='text/template', id='email-fieldset-tpl')
   |     </div>
   |     <button type="button" id="add-email-field-button">Add</button>
 
+script(type='text/template', id='flash-message-tpl')
+  |  <div class="flash-message <%= cssClass %>">
+  |    <%= text %>
+  |    <span class="close-flash-message">[x]</span>
+  |  </div>
+
 script(type='text/template', id='phone-fieldset-tpl')
   |     <legend>Phone</legend>
   |     <div id="phone-fields">
@@ -87,10 +93,9 @@ script(type='text/template', id='phone-fieldset-tpl')
   |     </div>
   |     <button type="button" id="add-phone-field-button">Add</button>
 
-
 #wrapper
   #header 
     h1#main-title= title
-    #flash-messages!= flashMessages
   #primary-menu
+  #flash-messages!= flashMessages
   #content

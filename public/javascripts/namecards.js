@@ -323,11 +323,10 @@ MyApp = (function(Backbone, $) {
       // Update model with form values.
       this.updateContact();
       // Save contact to database.
-      this.model.save({
+      this.model.save(this.model.attributes, {
         success: function(model, response) {
-          console.log('Contact ' + self.model.get('surname') + ' saved');
           console.log(response);
-          alert('saved');
+          Messenger.trigger('newMessages', response.flash);
         },
         error: function(model, response) {
           throw error = new Error('Error occured while saving contact.');
@@ -842,6 +841,93 @@ MyApp = (function(Backbone, $) {
       this.$('a[href="' + uri + '"]').addClass('button-active');
     }
   });
+
+  /**
+   * Event aggregator for flash message system
+   */
+  var Messenger = _.extend({}, Backbone.Events);
+  Messenger.on('newMessages', function() {
+    console.log('New flash message.');
+  });
+  Messenger.on('purgeMessages', function() {
+    console.log('Purge flash messages.');
+  });
+  
+  /**
+   * Message Model
+   */
+  var Message = Backbone.Model.extend({
+    defaults: {
+      sticky: false
+    }
+  });
+  
+  /**
+   * Message Collection
+   */
+  var Messages = Backbone.Collection.extend({
+    model: Message
+  });
+  
+  var FlashMessageView = Backbone.View.extend({
+    tagName: 'li',
+    initialize: function() {
+      _.bindAll(this, 'render');
+      // Add templates.
+      this._flashMessageTemplate = _.template($('#flash-message-tpl').html());
+    },
+    render: function() {
+      this.$el.html(this._flashMessageTemplate({ 
+        cssClass: 'flash-message-' + this.model.get('type'),
+        text: this.model.get('text')
+      }));
+      // Hide close button if not a sticky message.
+      if (this.model.get('sticky') === false) {
+        this.$('.close-flash-message').css({ 'display': 'none'});
+      }
+      return this;
+    }
+  });
+  
+  /**
+   * Messenger View
+   */
+  var FlashMessagesView = Backbone.View.extend({
+    el: '#flash-messages',
+    initialize: function() {
+      _.bindAll(this, 'appendMessage', 'newMessages', 'render');
+      Messenger.bind('newMessages', this.newMessages);
+      Messenger.bind('purgeMessages', this.purgeMessages);
+      this.render();
+      // Bind collection to view.
+      this.collection = new Messages();
+      this.collection.bind('add', this.appendMessage);
+//      this.collection.add([
+//        new Message({ type: 'info', text: 'Something completed successfully.', sticky: true}),
+//        new Message({ type: 'error', text: 'Something went wrong.'})
+//      ]);
+    },
+    render: function() {
+      this.$el.html('<ul></ul>');
+      return this;
+    },
+    appendMessage: function(message) {
+      var messageModel = new Message(message);
+      var flashMessageView = new FlashMessageView({ model: messageModel });
+      this.$('ul').append(flashMessageView.render().el);
+    },
+    newMessages: function(messages) {
+      var self = this;
+      console.log('newMessages');
+      console.log(messages);
+      _.each(messages, function(message, index) {
+        self.appendMessage(message);
+      });
+    },
+    purgeMessages: function() {}
+  });
+  
+  
   
   /**
    * Page routes
@@ -865,6 +951,8 @@ MyApp = (function(Backbone, $) {
       this.menu = new Menu();
       this.menu.add(options.menuItems);
       var primaryMenuView = new PrimaryMenuView({ collection: this.menu });
+      var flashMessagesView = new FlashMessagesView();
+      // Create jQuery wrapped content variable.  Avoids having to make repeated calls for the same DOM object.
       this.$content = $('#content');
     },
     addContact: function() {
@@ -929,7 +1017,6 @@ MyApp = (function(Backbone, $) {
         menuItems: options.menuItems
       });
       Backbone.history.start();
-      console.log('init');
     }
   };
   

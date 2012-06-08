@@ -122,6 +122,16 @@ div.table-cell {
 }
 #flash-messages {
 }
+.flash-message {
+  width:600px;
+  padding: 2px 10px;	
+}
+.flash-message-error {
+  background-color: red;
+}
+.flash-message-info {
+  background-color: orange;
+}
 .flash .flash-message-wrapper {
   overflow:hidden;
 }
