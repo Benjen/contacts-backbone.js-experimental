@@ -188,9 +188,10 @@ MyApp = (function(Backbone, $) {
       this.collection.fetch();
     },
     render: function() {
-      this.$el.hide();
-      this.$el.html(this.template({ contacts: this.collection }));
-      this.$el.fadeIn(500);
+      this.$el
+        .hide()
+        .html(this.template({ contacts: this.collection }))
+        .fadeIn(500);
       return this;
     }
   });
@@ -242,9 +243,10 @@ MyApp = (function(Backbone, $) {
       this.eventAggregator.trigger('deleteContact', id);
     },
     render: function() {
-      this.$el.hide();
-      this.$el.html(this.template({ contact: this.model.attributes }));
-      this.$el.fadeIn(500);
+      this.$el
+        .hide()
+        .html(this.template({ contact: this.model.attributes }))
+        .fadeIn(500);
       return this;
     }
   });
@@ -294,11 +296,9 @@ MyApp = (function(Backbone, $) {
     },
     render: function() {
       var self = this;
-      this.$el.hide();
-      // Render edit form template.
-      this.$el.html(this._editFormTemplate({ 
-        contact: self.model.toJSON()
-      }));
+      this.$el
+        .hide()
+        .html(this._editFormTemplate({ contact: self.model.toJSON() }));
       // Attach email fieldset subview.
       var emailFieldsetView = new EmailFieldsetView({ model: this.model });
       // Add to subviews array. Useful if need to process subviews later (e.g. if need to run onClose() methods on subviews).
@@ -430,8 +430,13 @@ MyApp = (function(Backbone, $) {
         value: newEmailField.value
       }));
       // Add move cursor on mouse over effect.
-      $renderedNewEmailField.find('.drag-handle').addClass('drag-handle-enabled');
-      $renderedNewEmailField.hide().appendTo($emailFields).fadeIn('slow');
+      $renderedNewEmailField
+        .find('.drag-handle')
+        .addClass('drag-handle-enabled');
+      $renderedNewEmailField
+        .hide()
+        .appendTo($emailFields)
+        .fadeIn('slow');
       // Add sortable effect if more than one field present.
       if (this.model.get('email').length > 1) {
         this.addSortableFields($emailFields);
@@ -612,9 +617,14 @@ MyApp = (function(Backbone, $) {
         type: phoneField.type
       }));
       // Add move cursor on mouse over effect.
-      $renderedNewPhoneField.find('.drag-handle').addClass('drag-handle-enabled');
+      $renderedNewPhoneField
+        .find('.drag-handle')
+        .addClass('drag-handle-enabled');
       // Add new field to DOM using fade in effectl
-      $renderedNewPhoneField.hide().appendTo($phoneFields).fadeIn('slow');
+      $renderedNewPhoneField
+        .hide()
+        .appendTo($phoneFields)
+        .fadeIn('slow');
       // Add sortable effect if more than one phone present.
       if (this.model.get('phone').length > 1) {
         this.addSortableFields($phoneFields);
