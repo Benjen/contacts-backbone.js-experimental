@@ -966,11 +966,6 @@ MyApp = (function(Backbone, $) {
     },
     initialize: function(options) {
       this.appView = options.appView;
-      // Create menu collection.
-      this.menu = new Menu();
-      this.menu.add(options.menuItems);
-      var primaryMenuView = new PrimaryMenuView({ collection: this.menu });
-      var flashMessagesView = new FlashMessagesView();
       // Create jQuery wrapped content variable.  Avoids having to make repeated calls for the same DOM object.
       this.$content = $('#content');
     },
@@ -1030,10 +1025,18 @@ MyApp = (function(Backbone, $) {
    */
   return {
     init: function(options) {
+      // Add view manager.
       var appView = new AppView();
+      // Create menu collection.
+      var menu = new Menu();
+      menu.add(options.menuItems);
+      // Add primary menu.
+      var primaryMenuView = new PrimaryMenuView({ collection: menu });
+      // Add flash messages.
+      var flashMessagesView = new FlashMessagesView();
+      // Start router.
       var clientSideRouter = new ClientSideRouter({ 
-        appView: appView,
-        menuItems: options.menuItems
+        appView: appView
       });
       Backbone.history.start();
     }

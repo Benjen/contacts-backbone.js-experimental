@@ -369,7 +369,6 @@ exports.editContact = function(req, res) {
  */
 exports.postContact = function(req, res) {
   var Contact = mongoose.model('Contact');
-  
   var contact = new Contact(req.body);
   var errors = new Array();
   var emails = new Array();
