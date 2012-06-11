@@ -672,7 +672,7 @@ exports.viewContact = function(req, res) {
   });
 };
 
-exports.delContact = function(req, res) {
+exports.delContact = function(req, res, format, id) {
   var Contact = mongoose.model('Contact');
   var id = req.params.id;
   // TODO: Does user have permission to delete contact?

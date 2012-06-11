@@ -46,7 +46,7 @@ models.defineModels(mongoose, function() {
   app.Address = Address = mongoose.model('Address');
   app.Email = Email = mongoose.model('Email');
   db = mongoose.connect(app.set('db-uri'));
-})
+});
 
 // Routes
 
@@ -63,7 +63,7 @@ app.get('/contact/delete/:id', namecards.createNamespace(), routes.confirmDelete
 app.get('/contacts.json/:id?', namecards.createNamespace(), routes.fetchContacts);
 app.post('/contacts.json', namecards.createNamespace(), routes.postContact);
 app.put('/contact', namecards.createNamespace(), routes.putContact);
-app.del('/contact/:id', namecards.createNamespace(), routes.delContact);
+app.del('/contacts.:format?/:id', namecards.createNamespace(), routes.delContact);
 app.post('/contact', namecards.createNamespace(), routes.postContact);
 
 

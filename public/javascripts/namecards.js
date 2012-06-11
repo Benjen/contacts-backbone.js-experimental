@@ -54,7 +54,7 @@ MyApp = (function(Backbone, $) {
   Backbone.View.prototype.close = function(){
     this.remove();
     this.unbind();
-    if (this.onClose){
+    if (this.onClose) {
       this.onClose();
     }
   };
@@ -67,11 +67,14 @@ MyApp = (function(Backbone, $) {
    * See http://lostechies.com/derickbailey/2011/07/19/references-routing-and-the-event-aggregator-coordinating-views-in-backbone-js/
    */
   var eventAggrigator = _.extend({}, Backbone.Events);
-  eventAggrigator.on('submit:contactEditForm', function() {
-    console.log('Contact edit form submit event triggered');
+  eventAggrigator.on('delete:contact', function() {
+    console.log('Delete contact event triggered');
   });
   eventAggrigator.on('load:page', function() {
     console.log('Load page event triggered');
+  });
+  eventAggrigator.on('submit:contactEditForm', function() {
+    console.log('Contact edit form submit event triggered');
   });
   
   /**
@@ -94,7 +97,27 @@ MyApp = (function(Backbone, $) {
   };
 
   /**
-   * Contacts
+   * Overlay Manager
+   * 
+   * Manages the content of overlays. Used to "kill" previous overlay 
+   * content (i.e. Views displayed in overlay) when new content is displayed.
+   */
+  function OverlayManager() {
+    this.showOverlayContent = function(view) {
+      // Close the current view.
+      if (this.currentView){
+        this.currentView.close();
+      }
+      // Set new view as current view.
+      this.currentView = view;
+      // Add view to page. 
+      $('#overlay').html(this.currentView.el);
+      $('#overlay').dialog('show');
+    };
+  };
+  
+  /**
+   * Model - Contact
    */
   var Contact = Backbone.Model.extend({
     urlRoot: '/contacts.json',
@@ -167,11 +190,45 @@ MyApp = (function(Backbone, $) {
     }
   });
   
+  /**
+   * Collection - Contacts
+   */
   var Contacts = Backbone.Collection.extend({
     model: Contact,
     url: '/contacts.json',
     parse: function(response) {
       return response.data;
+    }
+  });
+  
+  /**
+   * View - Individual list item for Contact in list view. 
+   */
+  var ListContactsItemView = Backbone.View.extend({
+    initialize: function() {
+      _.bindAll(this, 'render');
+      // Add templates.
+      this._template = _.template($('#list-contact-tpl').html());
+      this.render();
+    },
+    events: {
+      'click button': 'removeContact'
+    },
+    removeContact: function() {
+      
+      eventAggrigator.trigger('delete:contact');
+      this.model.destroy({
+        success: function(model, response) {
+          console.log('Contact removed');
+        },
+        error: function(model, response) {
+          console.log(response);
+        }
+      });
+    },
+    render: function() {
+      this.$el.html($(this._template({ model: this.model})).html());
+      return this;
     }
   });
   
@@ -181,17 +238,35 @@ MyApp = (function(Backbone, $) {
   var ListContactsView = Backbone.View.extend({
     initialize: function() {
       _.bindAll(this, 'render');
-      // Add templates.
-      this.template = _.template($('#list-contacts-tpl').html());
       this.collection = this.options.collection;
       this.collection.bind('reset', this.render);
       this.collection.fetch();
     },
     render: function() {
-      this.$el
-        .hide()
-        .html(this.template({ contacts: this.collection }))
-        .fadeIn(500);
+      var self = this;
+      this.$el.hide();
+      this.$el.html('<ul></ul>');
+      this.collection.each(function(model, index) {
+        // render list items.
+        var listContactsItemView = new ListContactsItemView({ model: model });
+        self.$('ul').append(listContactsItemView.render().el);
+      });
+      this.$el.fadeIn(500);
+      return this;
+    }
+  });
+
+  
+  /**
+   * View - Confirm Delete
+   */
+  var confirmDeleteView = Backbone.View.extend({
+    initialize: function() {
+      _.bindAll(this, 'render');
+    },
+    render: function() {
+      var text = 'Are your sure you want to delete this contact?';
+      this.$el.html(text);
       return this;
     }
   });
@@ -203,7 +278,6 @@ MyApp = (function(Backbone, $) {
    * 
    */
   var DeleteContactView = Backbone.View.extend({
-    el: '#content',
     initialize: function() {
       _.bindAll(this, 'render');
       // Bind deleteContact method to deleteContact event in event aggragator.
@@ -225,9 +299,6 @@ MyApp = (function(Backbone, $) {
       _.bindAll(this, 'deleteContact', 'render');
       // define template in initialize function to ensure DOM has loaded.
       this.template = _.template($('#display-contact-tpl').html());
-      // Create reference to event aggregator object.
-//      this.eventAggregator = options.eventAggregator;
-//      this.eventAggregator.trigger();
       this.model = this.options.model;
       // Add parse method since parsing is not done by collection in this 
       // instance, as this model is not called in the scope of collection 
@@ -240,7 +311,7 @@ MyApp = (function(Backbone, $) {
     },
     deleteContact: function(id) {
       // Trigger deleteContact event.
-      this.eventAggregator.trigger('deleteContact', id);
+      this.eventAggregator.trigger('delete:contact', id);
     },
     render: function() {
       this.$el
@@ -332,7 +403,7 @@ MyApp = (function(Backbone, $) {
         error: function(model, response) {
           throw error = new Error('Error occured while saving contact.');
         }
-      });
+      }, { wait: true });
     },
     /**
      * Extract form values and update Contact.
@@ -354,7 +425,7 @@ MyApp = (function(Backbone, $) {
   });
   
   /**
-   * Email fieldset view
+   * View - Email fieldset
    */
   var EmailFieldsetView = Backbone.View.extend({
     /**
@@ -535,7 +606,7 @@ MyApp = (function(Backbone, $) {
   });
 
   /**
-   * Phone fieldset View
+   * View - Phone fieldset
    * 
    * Implements phone field in add contact form.
    */
@@ -762,12 +833,12 @@ MyApp = (function(Backbone, $) {
 //  var orgTextFieldView = new OrgTextFieldView();
 
   /**
-   * Menu Item Model
+   * Model - Menu Item
    */
   var MenuItem = Backbone.Model.extend();
   
   /**
-   * Menu Collection
+   * Collection - Menu
    */
   var Menu = Backbone.Collection.extend({
     model: MenuItem,
@@ -796,7 +867,7 @@ MyApp = (function(Backbone, $) {
   });
   
   /**
-   * Menu Item View
+   * View - Menu Item
    */
   var MenuItemView = Backbone.View.extend({
     tagName: 'li',
@@ -812,7 +883,7 @@ MyApp = (function(Backbone, $) {
   });
   
   /**
-   * Menu View 
+   * View - Menu 
    */
   var PrimaryMenuView = Backbone.View.extend({
     el: '#primary-menu',
@@ -867,7 +938,7 @@ MyApp = (function(Backbone, $) {
   });
   
   /**
-   * Message Model
+   * Model - Message
    */
   var Message = Backbone.Model.extend({
     defaults: {
@@ -876,7 +947,7 @@ MyApp = (function(Backbone, $) {
   });
   
   /**
-   * Message Collection
+   * Collection - Message 
    */
   var Messages = Backbone.Collection.extend({
     model: Message
@@ -903,7 +974,7 @@ MyApp = (function(Backbone, $) {
   });
   
   /**
-   * Messenges View
+   * View - Messenges
    */
   var FlashMessagesView = Backbone.View.extend({
     el: '#flash-messages',
@@ -946,10 +1017,109 @@ MyApp = (function(Backbone, $) {
     purgeMessages: function() {}
   });
   
-  
+  /**
+   * Model - Overlay Button
+   */
+//  var OverlayButton = Backbone.Model.extend({});
   
   /**
-   * Page routes
+   * Collection - Overlay Buttons 
+   */
+//  var OverlayButtons = Backbone.Collection.extend({
+//    model: OverlayButton
+//  });
+  
+  /**
+   * View - Overlay
+   */
+  var OverlayView = Backbone.View.extend({
+    id: 'overlay',
+    initialize: function() {
+      _.bindAll(this, 'render', 'setMode', 'showDialog');
+//      this.collection = this.options.collection;
+//      this.collection.bind('reset', this.render);
+      eventAggrigator.bind('delete:contact', this.confirmDelete);
+      this.render();
+    },
+    /**
+     * Add required options to modal dialog based on usage
+     * 
+     * Enables one to use the model dialog for different purposes.
+     * Supported modes:
+     *   Confirm delete dialog, View contact dialog.
+     */
+    setMode: function(mode) {
+      var self = this;
+      switch (mode) {
+        case 'viewContact':
+          this.$el.dialog({
+            buttons: [
+              {
+                text: 'Edit',
+                click: function() {}
+              },
+              {
+                text: 'Delete',
+                click: function() {
+                }
+              },
+              {
+                text: 'Close',
+                click: function() {
+                  self.$el.dialog('close');
+                }
+              }
+            ]
+          });
+          break;
+        case 'confirmDelete':
+        default:
+          this.$el.dialog({
+            buttons: [
+              {
+                text: 'OK',
+                click: function() {}
+              },
+              {
+                text: 'Cancel',
+                click: function() {
+                  self.$el.dialog('close');
+                }
+              }
+            ]
+          });
+          break;
+      }
+    },
+//    createButtons: function() {
+//      var buttonsArray = new Array();
+//      this.collection.each(function(button, index){
+//        var buttonConfig = {
+//          text: button.get('text'),
+//          click: button.get('click')
+//        };
+//        buttonsArray.push(buttonConfig);
+//      });
+//      return buttonsArray;
+//    },
+    render: function() {
+      // Append overlay to page.
+      this.$el.appendTo($('body'));
+      // Initialize dialog.
+      var dialogOptions = {};
+      dialogOptions.modal = true;
+      this.$el.dialog(dialogOptions);
+      dialogOptions.autoOpen = true;
+      this.setMode();
+      return this;
+    },
+    showDialog: function() {
+      this.$el.dialog('show');
+    }
+  });
+  
+  /**
+   * Router - Page routes
    */
 //  var $content = $('#content');
   var ClientSideRouter = Backbone.Router.extend({
@@ -961,7 +1131,7 @@ MyApp = (function(Backbone, $) {
       'orgs/:orgName/:id': 'orgs',
       'contact/add': 'addContact',
       'contact/view/:id': 'viewContact',
-      'contact/delete/:id': 'confirmDelete',
+//      'contact/delete/:id': 'confirmDelete',
       '*path': 'defaultPage'
     },
     initialize: function(options) {
@@ -984,6 +1154,9 @@ MyApp = (function(Backbone, $) {
       this.appView.showView(displayContactView);
     },
     confirmDelete: function(id) {
+      // Load view.
+      
+      // Display view in overlay.
       var self = this;
       $.ajax({
         url: '/contact/delete/' + id,
@@ -1034,6 +1207,14 @@ MyApp = (function(Backbone, $) {
       var primaryMenuView = new PrimaryMenuView({ collection: menu });
       // Add flash messages.
       var flashMessagesView = new FlashMessagesView();
+      // Add overlay.
+//      var overlayButtons = new OverlayButtons({
+//        text: 'Close',
+//        click: function() {
+//          this.dialog('close');
+//        }
+//      });
+      var overlayView = new OverlayView();
       // Start router.
       var clientSideRouter = new ClientSideRouter({ 
         appView: appView
@@ -1046,6 +1227,7 @@ MyApp = (function(Backbone, $) {
 
 (function($){
 
+  // Create menu item properties. 
   var menuItems = new Array(
     {
       url: '/#browse',
