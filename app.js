@@ -63,7 +63,7 @@ app.get('/contact/delete/:id', namecards.createNamespace(), routes.confirmDelete
 app.get('/contacts.json/:id?', namecards.createNamespace(), routes.fetchContacts);
 app.post('/contacts.json', namecards.createNamespace(), routes.postContact);
 app.put('/contact', namecards.createNamespace(), routes.putContact);
-app.del('/contacts.:format?/:id', namecards.createNamespace(), routes.delContact);
+app.del('/contacts.json/:id', namecards.createNamespace(), routes.deleteContact);
 app.post('/contact', namecards.createNamespace(), routes.postContact);
 
 

@@ -115,6 +115,7 @@ div.table-cell {
 }
 .email-field-wrapper {
   padding: 2px 0 2px 0;
+  background-color: white;
 }
 .email-fields {}
 .form-field-error {
@@ -147,6 +148,7 @@ div.table-cell {
 }
 .phone-field-wrapper {
   padding: 2px 0 2px 0;
+  background-color: white;
 }
 .phone-field {
   vertical-align: middle;

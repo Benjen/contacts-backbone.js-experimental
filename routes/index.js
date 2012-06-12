@@ -164,6 +164,32 @@ exports.addForm = function(req, res) {
 };
 
 /*
+ * Delete contact
+ */
+exports.deleteContact = function(req, res) {
+  var id = req.params.id;
+  var Contact = mongoose.model('Contact');
+  console.log(id);
+  Contact.remove({ _id: id }, function(err) {
+    if (err) {
+      console.log();
+      res.json({ 
+        flash: [
+          { type: 'error', text: 'Contact could not be saved. Error message: ' + err.message }
+        ]
+      }, 500);
+    }
+    else {
+      res.json({ 
+        flash: [
+          { type: 'info', text: 'Contact removed' }
+        ]
+      }, 200);
+    }
+  });
+};
+
+/*
  * Display edit contact form.
  * 
  * TODO: This is really messy with lots of repeated code. Needs to be overhauled/streamlined.

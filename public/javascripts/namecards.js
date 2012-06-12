@@ -67,8 +67,11 @@ MyApp = (function(Backbone, $) {
    * See http://lostechies.com/derickbailey/2011/07/19/references-routing-and-the-event-aggregator-coordinating-views-in-backbone-js/
    */
   var eventAggrigator = _.extend({}, Backbone.Events);
-  eventAggrigator.on('delete:contact', function() {
-    console.log('Delete contact event triggered');
+  eventAggrigator.on('pre-delete:contact', function() {
+    console.log('About to delete contact event triggered');
+  });
+  eventAggrigator.on('post-delete:contact', function() {
+    console.log('Deleted contact event triggered');
   });
   eventAggrigator.on('load:page', function() {
     console.log('Load page event triggered');
@@ -96,26 +99,6 @@ MyApp = (function(Backbone, $) {
     };
   };
 
-  /**
-   * Overlay Manager
-   * 
-   * Manages the content of overlays. Used to "kill" previous overlay 
-   * content (i.e. Views displayed in overlay) when new content is displayed.
-   */
-  function OverlayManager() {
-    this.showOverlayContent = function(view) {
-      // Close the current view.
-      if (this.currentView){
-        this.currentView.close();
-      }
-      // Set new view as current view.
-      this.currentView = view;
-      // Add view to page. 
-      $('#overlay').html(this.currentView.el);
-      $('#overlay').dialog('show');
-    };
-  };
-  
   /**
    * Model - Contact
    */
@@ -206,7 +189,7 @@ MyApp = (function(Backbone, $) {
    */
   var ListContactsItemView = Backbone.View.extend({
     initialize: function() {
-      _.bindAll(this, 'render');
+      _.bindAll(this, 'removeContact', 'render');
       // Add templates.
       this._template = _.template($('#list-contact-tpl').html());
       this.render();
@@ -214,17 +197,64 @@ MyApp = (function(Backbone, $) {
     events: {
       'click button': 'removeContact'
     },
+    /**
+     * Remove contact
+     * 
+     * Makes use of modal dialog to confirm deletion.
+     */
     removeContact: function() {
-      
-      eventAggrigator.trigger('delete:contact');
-      this.model.destroy({
-        success: function(model, response) {
-          console.log('Contact removed');
+      var self = this;
+      // Initialize confirm delete dialog.
+      var $dialog = $('<div></div');
+      $dialog.html('Are you sure you wish to delete this contact?');
+      var dialogOptions = {};
+      dialogOptions.modal = true;
+      dialogOptions.autoOpen = true;
+      dialogOptions.buttons = [
+        {
+          text: 'Yes',
+          click: function() {
+            // Delete contact.
+            eventAggrigator.trigger('pre-delete:contact');
+            self.model.destroy({
+              success: function(model, response) {
+                // Close and remove dialog.
+                $dialog.dialog('close');
+                $dialog.dialog('destroy');
+                // Display any messages.
+                if (typeof response.flash !== 'undefined') {
+                  Messenger.trigger('newMessages', response.flash);
+                }
+                // Remove view. This results in contact being removed from browse list.
+                self.$el.fadeOut('slow');
+                self.close();
+              },
+              error: function(model, response) {
+                console.log(response);
+                // Close and remove dialog.
+                $dialog.dialog('close');
+                $dialog.dialog('destroy');
+                // Display any messages.
+                if (typeof response.flash !== 'undefined') {
+                  Messenger.trigger('newMessages', response.flash);
+                }
+              },
+              // Wait for server to confirm delete before running callbacks.
+              wait: true
+            });
+          }
         },
-        error: function(model, response) {
-          console.log(response);
+        {
+          text: 'No',
+          click: function() {
+            // Close dialog.
+            $dialog.dialog('close');
+            $dialog.dialog('destroy');
+          }
         }
-      });
+      ];
+      // Create confirm delete dialog.
+      $dialog.dialog(dialogOptions);
     },
     render: function() {
       this.$el.html($(this._template({ model: this.model})).html());
@@ -309,9 +339,60 @@ MyApp = (function(Backbone, $) {
       this.model.bind('change', this.render);
       this.model.fetch();
     },
-    deleteContact: function(id) {
-      // Trigger deleteContact event.
-      this.eventAggregator.trigger('delete:contact', id);
+    deleteContact: function() {
+      var self = this;
+      // Initialize confirm delete dialog.
+      var $dialog = $('<div></div');
+      $dialog.html('Are you sure you wish to delete this contact?');
+      var dialogOptions = {};
+      dialogOptions.modal = true;
+      dialogOptions.autoOpen = true;
+      dialogOptions.buttons = [
+        {
+          text: 'Yes',
+          click: function() {
+            // Delete contact.
+            eventAggrigator.trigger('pre-delete:contact');
+            self.model.destroy({
+              success: function(model, response) {
+                // Close and remove dialog.
+                $dialog.dialog('close');
+                $dialog.dialog('destroy');
+                // Display any messages.
+                if (typeof response.flash !== 'undefined') {
+                  Messenger.trigger('newMessages', response.flash);
+                }
+                // Remove view. This results in contact being removed from browse list.
+                self.$el.fadeOut('slow');
+                // return to browse contacts page.
+                
+              },
+              error: function(model, response) {
+                console.log(response);
+                // Close and remove dialog.
+                $dialog.dialog('close');
+                $dialog.dialog('destroy');
+                // Display any messages.
+                if (typeof response.flash !== 'undefined') {
+                  Messenger.trigger('newMessages', response.flash);
+                }
+              },
+              // Wait for server to confirm delete before running callbacks.
+              wait: true
+            });
+          }
+        },
+        {
+          text: 'No',
+          click: function() {
+            // Close dialog.
+            $dialog.dialog('close');
+            $dialog.dialog('destroy');
+          }
+        }
+      ];
+      // Create confirm delete dialog.
+      $dialog.dialog(dialogOptions);
     },
     render: function() {
       this.$el
@@ -1018,110 +1099,8 @@ MyApp = (function(Backbone, $) {
   });
   
   /**
-   * Model - Overlay Button
-   */
-//  var OverlayButton = Backbone.Model.extend({});
-  
-  /**
-   * Collection - Overlay Buttons 
-   */
-//  var OverlayButtons = Backbone.Collection.extend({
-//    model: OverlayButton
-//  });
-  
-  /**
-   * View - Overlay
-   */
-  var OverlayView = Backbone.View.extend({
-    id: 'overlay',
-    initialize: function() {
-      _.bindAll(this, 'render', 'setMode', 'showDialog');
-//      this.collection = this.options.collection;
-//      this.collection.bind('reset', this.render);
-      eventAggrigator.bind('delete:contact', this.confirmDelete);
-      this.render();
-    },
-    /**
-     * Add required options to modal dialog based on usage
-     * 
-     * Enables one to use the model dialog for different purposes.
-     * Supported modes:
-     *   Confirm delete dialog, View contact dialog.
-     */
-    setMode: function(mode) {
-      var self = this;
-      switch (mode) {
-        case 'viewContact':
-          this.$el.dialog({
-            buttons: [
-              {
-                text: 'Edit',
-                click: function() {}
-              },
-              {
-                text: 'Delete',
-                click: function() {
-                }
-              },
-              {
-                text: 'Close',
-                click: function() {
-                  self.$el.dialog('close');
-                }
-              }
-            ]
-          });
-          break;
-        case 'confirmDelete':
-        default:
-          this.$el.dialog({
-            buttons: [
-              {
-                text: 'OK',
-                click: function() {}
-              },
-              {
-                text: 'Cancel',
-                click: function() {
-                  self.$el.dialog('close');
-                }
-              }
-            ]
-          });
-          break;
-      }
-    },
-//    createButtons: function() {
-//      var buttonsArray = new Array();
-//      this.collection.each(function(button, index){
-//        var buttonConfig = {
-//          text: button.get('text'),
-//          click: button.get('click')
-//        };
-//        buttonsArray.push(buttonConfig);
-//      });
-//      return buttonsArray;
-//    },
-    render: function() {
-      // Append overlay to page.
-      this.$el.appendTo($('body'));
-      // Initialize dialog.
-      var dialogOptions = {};
-      dialogOptions.modal = true;
-      this.$el.dialog(dialogOptions);
-      dialogOptions.autoOpen = true;
-      this.setMode();
-      return this;
-    },
-    showDialog: function() {
-      this.$el.dialog('show');
-    }
-  });
-  
-  /**
    * Router - Page routes
    */
-//  var $content = $('#content');
   var ClientSideRouter = Backbone.Router.extend({
     routes: {
       'browse': 'browse',
@@ -1131,7 +1110,7 @@ MyApp = (function(Backbone, $) {
       'orgs/:orgName/:id': 'orgs',
       'contact/add': 'addContact',
       'contact/view/:id': 'viewContact',
-//      'contact/delete/:id': 'confirmDelete',
+      'contact/delete/:id': 'confirmDelete',
       '*path': 'defaultPage'
     },
     initialize: function(options) {
@@ -1154,17 +1133,7 @@ MyApp = (function(Backbone, $) {
       this.appView.showView(displayContactView);
     },
     confirmDelete: function(id) {
-      // Load view.
-      
-      // Display view in overlay.
-      var self = this;
-      $.ajax({
-        url: '/contact/delete/' + id,
-        dataType: 'html',
-        success: function(data) {
-          self.$content.html(data);
-        }
-      });
+      var confirmDeleteView = new ConfirmDeleteView(id);
     },
     defaultPage: function(path) {
       this.$content.html('Default');
@@ -1207,14 +1176,6 @@ MyApp = (function(Backbone, $) {
       var primaryMenuView = new PrimaryMenuView({ collection: menu });
       // Add flash messages.
       var flashMessagesView = new FlashMessagesView();
-      // Add overlay.
-//      var overlayButtons = new OverlayButtons({
-//        text: 'Close',
-//        click: function() {
-//          this.dialog('close');
-//        }
-//      });
-      var overlayView = new OverlayView();
       // Start router.
       var clientSideRouter = new ClientSideRouter({ 
         appView: appView
