@@ -221,6 +221,8 @@ MyApp = (function(Backbone, $) {
                 // Close and remove dialog.
                 $dialog.dialog('close');
                 $dialog.dialog('destroy');
+                // Remove element.
+                $dialog.remove();
                 // Display any messages.
                 if (typeof response.flash !== 'undefined') {
                   Messenger.trigger('newMessages', response.flash);
@@ -234,6 +236,8 @@ MyApp = (function(Backbone, $) {
                 // Close and remove dialog.
                 $dialog.dialog('close');
                 $dialog.dialog('destroy');
+                // Remove element.
+                $dialog.remove();
                 // Display any messages.
                 if (typeof response.flash !== 'undefined') {
                   Messenger.trigger('newMessages', response.flash);
@@ -250,6 +254,8 @@ MyApp = (function(Backbone, $) {
             // Close dialog.
             $dialog.dialog('close');
             $dialog.dialog('destroy');
+            // Remove element.
+            $dialog.remove();
           }
         }
       ];
@@ -286,38 +292,6 @@ MyApp = (function(Backbone, $) {
     }
   });
 
-  
-  /**
-   * View - Confirm Delete
-   */
-  var confirmDeleteView = Backbone.View.extend({
-    initialize: function() {
-      _.bindAll(this, 'render');
-    },
-    render: function() {
-      var text = 'Are your sure you want to delete this contact?';
-      this.$el.html(text);
-      return this;
-    }
-  });
-  
-  /**
-   * View - Delete contact
-   * 
-   * Responsible for removing contact from the system.
-   * 
-   */
-  var DeleteContactView = Backbone.View.extend({
-    initialize: function() {
-      _.bindAll(this, 'render');
-      // Bind deleteContact method to deleteContact event in event aggragator.
-      options.eventAggregater.bind('deleteContact', this.deleteContact);
-    },
-    render: function() {
-      return this;
-    }
-  });
-  
   /** 
    * View - Display single contact 
    */
@@ -358,6 +332,8 @@ MyApp = (function(Backbone, $) {
                 // Close and remove dialog.
                 $dialog.dialog('close');
                 $dialog.dialog('destroy');
+                // Remove element.
+                $dialog.remove();
                 // Display any messages.
                 if (typeof response.flash !== 'undefined') {
                   Messenger.trigger('newMessages', response.flash);
@@ -372,6 +348,8 @@ MyApp = (function(Backbone, $) {
                 // Close and remove dialog.
                 $dialog.dialog('close');
                 $dialog.dialog('destroy');
+                // Remove element.
+                $dialog.remove();
                 // Display any messages.
                 if (typeof response.flash !== 'undefined') {
                   Messenger.trigger('newMessages', response.flash);
@@ -388,6 +366,8 @@ MyApp = (function(Backbone, $) {
             // Close dialog.
             $dialog.dialog('close');
             $dialog.dialog('destroy');
+            // Remove element.
+            $dialog.remove();
           }
         }
       ];
