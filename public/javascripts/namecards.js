@@ -66,17 +66,20 @@ MyApp = (function(Backbone, $) {
    * decoupled from each other. 
    * See http://lostechies.com/derickbailey/2011/07/19/references-routing-and-the-event-aggregator-coordinating-views-in-backbone-js/
    */
-  var eventAggrigator = _.extend({}, Backbone.Events);
-  eventAggrigator.on('pre-delete:contact', function() {
+  var eventAggregator = _.extend({}, Backbone.Events);
+  eventAggregator.on('pre-delete:contact', function() {
     console.log('About to delete contact event triggered');
   });
-  eventAggrigator.on('post-delete:contact', function() {
+  eventAggregator.on('post-delete:contact', function() {
     console.log('Deleted contact event triggered');
   });
-  eventAggrigator.on('load:page', function() {
+  eventAggregator.on('load:page', function() {
     console.log('Load page event triggered');
   });
-  eventAggrigator.on('submit:contactEditForm', function() {
+  eventAggregator.on('redirect:parentPage', function() {
+    console.log('Page redirect event triggered');
+  });
+  eventAggregator.on('submit:contactEditForm', function() {
     console.log('Contact edit form submit event triggered');
   });
   
@@ -215,7 +218,7 @@ MyApp = (function(Backbone, $) {
           text: 'Yes',
           click: function() {
             // Delete contact.
-            eventAggrigator.trigger('pre-delete:contact');
+            eventAggregator.trigger('pre-delete:contact');
             self.model.destroy({
               success: function(model, response) {
                 // Close and remove dialog.
@@ -326,7 +329,7 @@ MyApp = (function(Backbone, $) {
           text: 'Yes',
           click: function() {
             // Delete contact.
-            eventAggrigator.trigger('pre-delete:contact');
+            eventAggregator.trigger('pre-delete:contact');
             self.model.destroy({
               success: function(model, response) {
                 // Close and remove dialog.
@@ -340,8 +343,8 @@ MyApp = (function(Backbone, $) {
                 }
                 // Remove view. This results in contact being removed from browse list.
                 self.$el.fadeOut('slow');
-                // return to browse contacts page.
-                
+                // return to parent page.
+                eventAggregator.trigger('redirect:parentPage', window.location.hash);
               },
               error: function(model, response) {
                 console.log(response);
@@ -451,7 +454,7 @@ MyApp = (function(Backbone, $) {
       // Prevent submit event trigger from firing.
       event.preventDefault();
       // Trigger form submit event.
-      eventAggrigator.trigger('submit:contactEditForm');
+      eventAggregator.trigger('submit:contactEditForm');
       // Update model with form values.
       this.updateContact();
       // Save contact to database.
@@ -502,7 +505,7 @@ MyApp = (function(Backbone, $) {
     initialize: function() {
       _.bindAll(this, 'addSortableFields', 'appendNewField', 'getFieldsHtml', 'removeField', 'render', 'setEmailValues');
       // Bind to event aggregator.
-      eventAggrigator.bind('submit:contactEditForm', this.setEmailValues);
+      eventAggregator.bind('submit:contactEditForm', this.setEmailValues);
       // Add templates.
       this._emailFieldTemplate = _.template($('#email-field-tpl').html());
       this._emailFieldsetTemplate = _.template($('#email-fieldset-tpl').html());
@@ -685,7 +688,7 @@ MyApp = (function(Backbone, $) {
     initialize: function() {
       _.bindAll(this, 'addSortableFields', 'appendNewField', 'getFieldsHtml', 'removeField', 'render', 'setPhoneValues');
       // Bind to event aggregator.
-      eventAggrigator.bind('submit:contactEditForm', this.setPhoneValues);
+      eventAggregator.bind('submit:contactEditForm', this.setPhoneValues);
       // Add templates.
       this._phoneFieldTemplate = _.template($('#phone-field-tpl').html());
       this._phoneFieldsetTemplate = _.template($('#phone-fieldset-tpl').html());
@@ -1095,6 +1098,9 @@ MyApp = (function(Backbone, $) {
     },
     initialize: function(options) {
       this.appView = options.appView;
+      _.bindAll(this, 'redirectToParentPage');
+      // Bind events.
+      eventAggregator.bind('redirect:parentPage', this.redirectToParentPage);
       // Create jQuery wrapped content variable.  Avoids having to make repeated calls for the same DOM object.
       this.$content = $('#content');
     },
@@ -1129,6 +1135,12 @@ MyApp = (function(Backbone, $) {
       if (typeof id !== 'undefined') {
         this.$content.html(' ' + id);
       }
+    },
+    redirectToParentPage: function(uri) {
+      // Extract parent page info from URI.
+      var temp = uri.split('/', 1);
+      var parentUri = temp[0];
+      this.navigate(parentUri, { trigger: true });
     },
     viewContact: function(id) {
       var self = this;
