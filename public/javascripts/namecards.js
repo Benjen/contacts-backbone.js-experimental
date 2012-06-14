@@ -67,21 +67,16 @@ MyApp = (function(Backbone, $) {
    * See http://lostechies.com/derickbailey/2011/07/19/references-routing-and-the-event-aggregator-coordinating-views-in-backbone-js/
    */
   var eventAggregator = _.extend({}, Backbone.Events);
-  eventAggregator.on('pre-delete:contact', function() {
-    console.log('About to delete contact event triggered');
-  });
-  eventAggregator.on('post-delete:contact', function() {
-    console.log('Deleted contact event triggered');
-  });
-  eventAggregator.on('load:page', function() {
-    console.log('Load page event triggered');
-  });
-  eventAggregator.on('redirect:parentPage', function() {
-    console.log('Page redirect event triggered');
-  });
-  eventAggregator.on('submit:contactEditForm', function() {
-    console.log('Contact edit form submit event triggered');
-  });
+  // List events bound to eventAggregator.  These are simply placeholder functions
+  // which are not directly utilized. Listing them in this manner is to help the 
+  // developer understand which events are available through the eventAggregator.
+  eventAggregator.on('click:addContact', function() {});
+  eventAggregator.on('click:menuButton', function() {});
+  eventAggregator.on('load:page', function() {});
+  eventAggregator.on('post-delete:contact', function() {});
+  eventAggregator.on('pre-delete:contact', function() {});
+  eventAggregator.on('redirect:parentPage', function() {});
+  eventAggregator.on('submit:contactEditForm', function() {});
   
   /**
    * View Manager
@@ -281,6 +276,9 @@ MyApp = (function(Backbone, $) {
       this.collection.bind('reset', this.render);
       this.collection.fetch();
     },
+    onClose: function() {
+      console.log('closing ListContactsView');
+    },
     render: function() {
       var self = this;
       this.$el.hide();
@@ -377,6 +375,9 @@ MyApp = (function(Backbone, $) {
       // Create confirm delete dialog.
       $dialog.dialog(dialogOptions);
     },
+    onClose: function() {
+      console.log('closing DisplayContactView');
+    },
     render: function() {
       this.$el
         .hide()
@@ -394,7 +395,7 @@ MyApp = (function(Backbone, $) {
       'click #submit-button': 'saveContact'
     },
     initialize: function() {
-      _.bindAll(this, 'render', 'saveContact', 'updateContact');
+      _.bindAll(this, 'createDialog', 'render', 'saveContact', 'updateContact');
       // Add templates.
       this._editFormTemplate = _.template($('#edit-contact-form-tpl').html());
       this._emailFieldTemplate = _.template($('#email-field-tpl').html());
@@ -416,6 +417,25 @@ MyApp = (function(Backbone, $) {
       // Manually trigger view render, since model is unchanged (i.e. was not fetched).
       this.render();
     },
+    createDialog: function() {
+      var self = this;
+      var dialogOptions = {
+        autoOpen: true,
+        modal: true,
+        width: 400,
+        buttons: [
+          {
+            text: 'Save',
+            click: function() {}
+          },
+          {
+            text: 'Close',
+            click: function() {}
+          }
+        ]
+      };
+      this.$el.dialog(dialogOptions);
+    },
     /**
      * Contains code to run when closing view
      * 
@@ -428,6 +448,7 @@ MyApp = (function(Backbone, $) {
           view.onClose();
         }
       });
+      console.log('closing EditContactView');
     },
     render: function() {
       var self = this;
@@ -447,6 +468,7 @@ MyApp = (function(Backbone, $) {
       phoneFieldsetView.render();
       this.$('fieldset.phone').append(phoneFieldsetView.$el);
       this.$el.fadeIn(500);
+      this.createDialog();
       return this;
     },
     saveContact: function(event) {
@@ -899,7 +921,12 @@ MyApp = (function(Backbone, $) {
   /**
    * Model - Menu Item
    */
-  var MenuItem = Backbone.Model.extend();
+  var MenuItem = Backbone.Model.extend({
+    defaults: {
+      // Menu item link does not open in a dialog. 
+      openInDialog: false
+    }
+  });
   
   /**
    * Collection - Menu
@@ -937,11 +964,29 @@ MyApp = (function(Backbone, $) {
     tagName: 'li',
     model: MenuItem,
     initialize: function() {
-      _.bindAll(this, 'render');
+      _.bindAll(this, 'buttonClicked', 'render');
+    },
+    events: {
+      'click .button': 'buttonClicked'
+    },
+    buttonClicked: function(event) {
+      // Prevent submit event trigger from firing.
+      event.preventDefault();
+      // Delegate click event to Router and other relevant Views.
+      eventAggregator.trigger('click:menuButton', event);
+      // Apply active button class to menu item if linked content does 
+      // not open in dialog (i.e. content will open in a new page).
+      console.log(this.$('.button').hasClass('openInDialog'));
+      if (this.$('.button').hasClass('openInDialog') === false) {
+        this.$('.button').addClass('button-active');
+      }
     },
     render: function() {
-      var element = '<a class="button" title="' + this.model.get('text') + '" href="' + this.model.get('url') + '"><span>' + this.model.get('text') + '</span></a>';
-      this.$el.append(element);
+      var $element = $('<a class="button" title="' + this.model.get('text') + '" href="' + this.model.get('url') + '"><span>' + this.model.get('text') + '</span></a>');
+      if (this.model.get('openInDialog') === true) {
+        $element.addClass('openInDialog');
+      }
+      this.$el.append($element);
       return this;
     }
   });
@@ -951,11 +996,9 @@ MyApp = (function(Backbone, $) {
    */
   var PrimaryMenuView = Backbone.View.extend({
     el: '#primary-menu',
-    events: {
-      'click .button': 'menuButtonClicked'
-    },
     initialize: function() {
-      _.bindAll(this, 'menuButtonClicked', 'render', 'setActiveButton');
+      _.bindAll(this, 'render', 'clearActiveButton');
+      eventAggregator.bind('click:menuButton', this.clearActiveButton);
       this.collection = this.options.collection;
       this.collection.bind('refresh', this.render);
       this.render();
@@ -963,13 +1006,26 @@ MyApp = (function(Backbone, $) {
       var uri = window.location.pathname + window.location.hash;
       this.$('a[href="' + uri + '"]').addClass('button-active');
     },
-    menuButtonClicked: function(event) {
-      // Remove previously applied 'button-active' classes from buttons.
-      this.$('.button').each(function(index, element) {
-        $(element).removeClass('button-active');
-      });
-      // Apply class to newly pressed button.
-      $(event.currentTarget).addClass('button-active');
+    /**
+     * Remove active button class from all buttons
+     * 
+     * This ensures that any previously active buttons are cleared when a 
+     * new button is clicked.
+     */
+    clearActiveButton: function(event) {
+      var $clickedElement = $(event.currentTarget);
+      // Only clear buttons if the newly clicked link is for a new page 
+      // (i.e. the link doesn't open in a modal). This is required since 
+      // a model is viewed within the current page, thus the active 
+      // button doesn't need to change.
+      if ($clickedElement.hasClass('openInDialog') === false) {
+        this.$('.button').each(function(index, element) {
+          var $menuItem = $(element);
+          if ($menuItem.hasClass('button-active')) {
+            $menuItem.removeClass('button-active');
+          }
+        });
+      }
     },
     render: function() {
       this.$el.html('<ul></ul>');
@@ -1098,16 +1154,19 @@ MyApp = (function(Backbone, $) {
     },
     initialize: function(options) {
       this.appView = options.appView;
-      _.bindAll(this, 'redirectToParentPage');
+      _.bindAll(this, 'addContact', 'gotoPage', 'redirectToParentPage');
       // Bind events.
       eventAggregator.bind('redirect:parentPage', this.redirectToParentPage);
+      eventAggregator.bind('click:addContact', this.addContact);
+      eventAggregator.bind('click:menuButton', this.gotoPage);
       // Create jQuery wrapped content variable.  Avoids having to make repeated calls for the same DOM object.
       this.$content = $('#content');
     },
     addContact: function() {
-      // Display contact edit form.
+      // Display contact edit form. Note that this.appView.showView() 
+      // method is not used since this view contains its own method 
+      // for closing itself.
       var editContactFormView = new EditContactFormView();
-      this.appView.showView(editContactFormView);
     },
     browse: function() {
       var listContactsView = new ListContactsView({ collection: new Contacts() });
@@ -1123,6 +1182,39 @@ MyApp = (function(Backbone, $) {
     },
     defaultPage: function(path) {
       this.$content.html('Default');
+    },
+    /**
+     * Filters which URL should be handled by the callback via this.routes 
+     * and which should directly use the callback without going via 
+     * this.routes.
+     * 
+     * This is used to differentiate between pages which should open in the 
+     * browser (e.g. new pages) and pages which should open in a dialog within 
+     * the current page.  This is required as pages in dialogs should not 
+     * change the URL in the browser.  This function also ensures that a url 
+     * will reload if the same link is clicked in succession.  This is normally 
+     * a problem since Backbon.js utilizes hashed URIs. Normally a browser will 
+     * not reload a hashed URI if the browser is already at that location.
+     * 
+     * @param Object event
+     *   jQuery event object.
+     */
+    gotoPage: function(event) {
+      var $currentTarget = $(event.currentTarget);
+      // Get URI of menu item clicked. 
+      var uri = $currentTarget.attr('href');
+      if ($currentTarget.hasClass('openInDialog') === true) {
+        // Get route callback function.
+        var route = uri.replace(/\/#/, '');
+        var routeCallbackName = this.routes[route];
+        console.log(routeCallbackName);
+        // Directly run route callback without going through Router.routes.  
+        this[routeCallbackName].call(this);
+      }
+      else {
+        // 
+        this.navigate(uri, { trigger: true });
+      }
     },
     home: function() {
       this.$content.html('Home');
@@ -1200,7 +1292,8 @@ MyApp = (function(Backbone, $) {
     {
       url: '/#contact/add',
       text: 'Add',
-      order: 3
+      order: 3,
+      openInDialog: true
     },
     {
       url: '/#email',
