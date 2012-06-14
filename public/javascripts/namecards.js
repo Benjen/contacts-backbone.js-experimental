@@ -72,7 +72,9 @@ MyApp = (function(Backbone, $) {
   // developer understand which events are available through the eventAggregator.
   eventAggregator.on('click:addContact', function() {});
   eventAggregator.on('click:menuButton', function() {});
-  eventAggregator.on('load:page', function() {});
+  eventAggregator.on('load:page', function() {
+    console.log('...load:page...');
+  });
   eventAggregator.on('post-delete:contact', function() {});
   eventAggregator.on('pre-delete:contact', function() {});
   eventAggregator.on('redirect:parentPage', function() {});
@@ -205,58 +207,55 @@ MyApp = (function(Backbone, $) {
       // Initialize confirm delete dialog.
       var $dialog = $('<div></div');
       $dialog.html('Are you sure you wish to delete this contact?');
-      var dialogOptions = {};
-      dialogOptions.modal = true;
-      dialogOptions.autoOpen = true;
-      dialogOptions.buttons = [
-        {
-          text: 'Yes',
-          click: function() {
-            // Delete contact.
-            eventAggregator.trigger('pre-delete:contact');
-            self.model.destroy({
-              success: function(model, response) {
-                // Close and remove dialog.
-                $dialog.dialog('close');
-                $dialog.dialog('destroy');
-                // Remove element.
-                $dialog.remove();
-                // Display any messages.
-                if (typeof response.flash !== 'undefined') {
-                  Messenger.trigger('newMessages', response.flash);
-                }
-                // Remove view. This results in contact being removed from browse list.
-                self.$el.fadeOut('slow');
-                self.close();
-              },
-              error: function(model, response) {
-                console.log(response);
-                // Close and remove dialog.
-                $dialog.dialog('close');
-                $dialog.dialog('destroy');
-                // Remove element.
-                $dialog.remove();
-                // Display any messages.
-                if (typeof response.flash !== 'undefined') {
-                  Messenger.trigger('newMessages', response.flash);
-                }
-              },
-              // Wait for server to confirm delete before running callbacks.
-              wait: true
-            });
+      var dialogOptions = {
+        modal: true,
+        autoOpen: true,
+        buttons: [
+          {
+            text: 'Yes',
+            click: function() {
+              // Delete contact.
+              eventAggregator.trigger('pre-delete:contact');
+              self.model.destroy({
+                success: function(model, response) {
+                  // Close and remove dialog.
+                  $dialog.dialog('close');
+                  // Display any messages.
+                  if (typeof response.flash !== 'undefined') {
+                    Messenger.trigger('new:messages', response.flash);
+                  }
+                  // Remove view. This results in contact being removed from browse list.
+                  self.$el.fadeOut('slow');
+                  self.close();
+                },
+                error: function(model, response) {
+                  console.log(response);
+                  // Close and remove dialog.
+                  $dialog.dialog('close');
+                  // Display any messages.
+                  if (typeof response.flash !== 'undefined') {
+                    Messenger.trigger('new:messages', response.flash);
+                  }
+                },
+                // Wait for server to confirm delete before running callbacks.
+                wait: true
+              });
+            }
+          },
+          {
+            text: 'No',
+            click: function() {
+              // Close dialog.
+              $dialog.dialog('close');
+            }
           }
-        },
-        {
-          text: 'No',
-          click: function() {
-            // Close dialog.
-            $dialog.dialog('close');
-            $dialog.dialog('destroy');
-            // Remove element.
-            $dialog.remove();
-          }
+        ],
+        close: function(event, ui) {
+          $dialog.dialog('destroy');
+          // Remove element.
+          $dialog.remove();
         }
-      ];
+      };
       // Create confirm delete dialog.
       $dialog.dialog(dialogOptions);
     },
@@ -276,9 +275,7 @@ MyApp = (function(Backbone, $) {
       this.collection.bind('reset', this.render);
       this.collection.fetch();
     },
-    onClose: function() {
-      console.log('closing ListContactsView');
-    },
+    onClose: function() {},
     render: function() {
       var self = this;
       this.$el.hide();
@@ -319,65 +316,60 @@ MyApp = (function(Backbone, $) {
       // Initialize confirm delete dialog.
       var $dialog = $('<div></div');
       $dialog.html('Are you sure you wish to delete this contact?');
-      var dialogOptions = {};
-      dialogOptions.modal = true;
-      dialogOptions.autoOpen = true;
-      dialogOptions.buttons = [
-        {
-          text: 'Yes',
-          click: function() {
-            // Delete contact.
-            eventAggregator.trigger('pre-delete:contact');
-            self.model.destroy({
-              success: function(model, response) {
-                // Close and remove dialog.
-                $dialog.dialog('close');
-                $dialog.dialog('destroy');
-                // Remove element.
-                $dialog.remove();
-                // Display any messages.
-                if (typeof response.flash !== 'undefined') {
-                  Messenger.trigger('newMessages', response.flash);
-                }
-                // Remove view. This results in contact being removed from browse list.
-                self.$el.fadeOut('slow');
-                // return to parent page.
-                eventAggregator.trigger('redirect:parentPage', window.location.hash);
-              },
-              error: function(model, response) {
-                console.log(response);
-                // Close and remove dialog.
-                $dialog.dialog('close');
-                $dialog.dialog('destroy');
-                // Remove element.
-                $dialog.remove();
-                // Display any messages.
-                if (typeof response.flash !== 'undefined') {
-                  Messenger.trigger('newMessages', response.flash);
-                }
-              },
-              // Wait for server to confirm delete before running callbacks.
-              wait: true
-            });
+      var dialogOptions = {
+        modal: true,
+        autoOpen: true,
+        buttons: [
+          {
+            text: 'Yes',
+            click: function() {
+              // Delete contact.
+              eventAggregator.trigger('pre-delete:contact');
+              self.model.destroy({
+                success: function(model, response) {
+                  // Close and remove dialog.
+                  $dialog.dialog('close');
+                  // Display any messages.
+                  if (typeof response.flash !== 'undefined') {
+                    Messenger.trigger('new:messages', response.flash);
+                  }
+                  // Remove view. This results in contact being removed from browse list.
+                  self.$el.fadeOut('slow');
+                  // return to parent page.
+                  eventAggregator.trigger('redirect:parentPage', window.location.hash);
+                },
+                error: function(model, response) {
+                  console.log(response);
+                  // Close and remove dialog.
+                  $dialog.dialog('close');
+                  // Display any messages.
+                  if (typeof response.flash !== 'undefined') {
+                    Messenger.trigger('new:messages', response.flash);
+                  }
+                },
+                // Wait for server to confirm delete before running callbacks.
+                wait: true
+              });
+            }
+          },
+          {
+            text: 'No',
+            click: function() {
+              // Close dialog.
+              $dialog.dialog('close');
+            }
           }
-        },
-        {
-          text: 'No',
-          click: function() {
-            // Close dialog.
-            $dialog.dialog('close');
-            $dialog.dialog('destroy');
-            // Remove element.
-            $dialog.remove();
-          }
+        ],
+        close: function(event, ui) {
+          $dialog.dialog('destroy');
+          // Remove element.
+          $dialog.remove();
         }
-      ];
+      };
       // Create confirm delete dialog.
       $dialog.dialog(dialogOptions);
     },
-    onClose: function() {
-      console.log('closing DisplayContactView');
-    },
+    onClose: function() {},
     render: function() {
       this.$el
         .hide()
@@ -391,9 +383,6 @@ MyApp = (function(Backbone, $) {
    * View - Edit contact form 
    */
   var EditContactFormView = Backbone.View.extend({
-    events: {
-      'click #submit-button': 'saveContact'
-    },
     initialize: function() {
       _.bindAll(this, 'createDialog', 'render', 'saveContact', 'updateContact');
       // Add templates.
@@ -419,6 +408,7 @@ MyApp = (function(Backbone, $) {
     },
     createDialog: function() {
       var self = this;
+      var $dialog = this.$el;
       var dialogOptions = {
         autoOpen: true,
         modal: true,
@@ -426,13 +416,27 @@ MyApp = (function(Backbone, $) {
         buttons: [
           {
             text: 'Save',
-            click: function() {}
+            click: function(event, ui) {
+              self.saveContact(event);
+              // Reload the current page. The reloading is handled by the Router.
+              eventAggregator.trigger('load:page', { uri: '/' + window.location.hash, openInDialog: false });
+              // Close dialog.
+              $dialog.dialog('close');
+              // Destroy current View.
+              self.close();
+            }
           },
           {
             text: 'Close',
-            click: function() {}
+            click: function(event, ui) {
+              // Close dialog.
+              $dialog.dialog('close');
+            }
           }
-        ]
+        ],
+        close: function(event, ui) {
+          self.close();
+        }
       };
       this.$el.dialog(dialogOptions);
     },
@@ -448,7 +452,6 @@ MyApp = (function(Backbone, $) {
           view.onClose();
         }
       });
-      console.log('closing EditContactView');
     },
     render: function() {
       var self = this;
@@ -483,7 +486,7 @@ MyApp = (function(Backbone, $) {
       this.model.save(this.model.attributes, {
         success: function(model, response) {
           if (typeof response.flash !== 'undefined') {
-            Messenger.trigger('newMessages', response.flash);
+            Messenger.trigger('new:messages', response.flash);
           }
         },
         error: function(model, response) {
@@ -972,11 +975,12 @@ MyApp = (function(Backbone, $) {
     buttonClicked: function(event) {
       // Prevent submit event trigger from firing.
       event.preventDefault();
+      var uri = this.$('.button').attr('href');
+      var openInDialog = (this.$('.button').hasClass('openInDialog')) ? true : false ;
       // Delegate click event to Router and other relevant Views.
-      eventAggregator.trigger('click:menuButton', event);
+      eventAggregator.trigger('click:menuButton', { uri: uri, openInDialog: openInDialog });
       // Apply active button class to menu item if linked content does 
       // not open in dialog (i.e. content will open in a new page).
-      console.log(this.$('.button').hasClass('openInDialog'));
       if (this.$('.button').hasClass('openInDialog') === false) {
         this.$('.button').addClass('button-active');
       }
@@ -1050,12 +1054,8 @@ MyApp = (function(Backbone, $) {
    * Event aggregator for flash message system
    */
   var Messenger = _.extend({}, Backbone.Events);
-  Messenger.on('newMessages', function() {
-    console.log('New flash message.');
-  });
-  Messenger.on('purgeMessages', function() {
-    console.log('Purge flash messages.');
-  });
+  Messenger.on('new:messages', function() {});
+  Messenger.on('purgeMessages', function() {});
   
   /**
    * Model - Message
@@ -1087,7 +1087,7 @@ MyApp = (function(Backbone, $) {
       }));
       // Hide close button if not a sticky message.
       if (this.model.get('sticky') === false) {
-        this.$('.close-flash-message').css({ 'display': 'none'});
+        this.$('.close-flash-message').css({ 'display': 'none' });
       }
       return this;
     }
@@ -1100,7 +1100,7 @@ MyApp = (function(Backbone, $) {
     el: '#flash-messages',
     initialize: function() {
       _.bindAll(this, 'appendMessage', 'newMessages', 'render');
-      Messenger.bind('newMessages', this.newMessages);
+      Messenger.bind('new:messages', this.newMessages);
       Messenger.bind('purgeMessages', this.purgeMessages);
       this.render();
       // Bind collection to view.
@@ -1159,6 +1159,7 @@ MyApp = (function(Backbone, $) {
       eventAggregator.bind('redirect:parentPage', this.redirectToParentPage);
       eventAggregator.bind('click:addContact', this.addContact);
       eventAggregator.bind('click:menuButton', this.gotoPage);
+      eventAggregator.bind('load:page', this.gotoPage);
       // Create jQuery wrapped content variable.  Avoids having to make repeated calls for the same DOM object.
       this.$content = $('#content');
     },
@@ -1196,25 +1197,34 @@ MyApp = (function(Backbone, $) {
      * a problem since Backbon.js utilizes hashed URIs. Normally a browser will 
      * not reload a hashed URI if the browser is already at that location.
      * 
-     * @param Object event
-     *   jQuery event object.
+     * @param Object args
+     *   contains required arguments.
+     *   args.uri
+     *     String containing the the URI to be loaded.
+     *   args.openInDialog
+     *     Boolean denoting whether the route should be opened in a dialog.
      */
-    gotoPage: function(event) {
-      var $currentTarget = $(event.currentTarget);
-      // Get URI of menu item clicked. 
-      var uri = $currentTarget.attr('href');
-      if ($currentTarget.hasClass('openInDialog') === true) {
-        // Get route callback function.
-        var route = uri.replace(/\/#/, '');
+    gotoPage: function(args) {
+//      var regexPattern = new RegExp("^/#[A-Za-z0-9_-\.]{1,}$");
+//      console.log(args.uri);
+//      if (regexPattern.test(args.uri) === false) {
+//        throw error = new Error('URI should have a leading forward-slash + hash (e.g. \'/#browse/view\').');
+//      }
+      if (args.openInDialog === true) {
+        // Get route callback function. Route keys must not contain leading 
+        // forward-slash + hash in order to work properly.  For example, the 
+        // key in Router.routes for URI '/#browse' is 'browse'.
+        var route = args.uri.replace(/\/#/, '');
         var routeCallbackName = this.routes[route];
-        console.log(routeCallbackName);
         // Directly run route callback without going through Router.routes.  
         this[routeCallbackName].call(this);
       }
       else {
-        // 
-        this.navigate(uri, { trigger: true });
+        // URI must have a leading forward-slash + hash to work correctly 
+        // (e.g. '/#browse').
+        this.navigate(args.uri, { trigger: true });
       }
+      console.log('...gotoPage...');
     },
     home: function() {
       this.$content.html('Home');
