@@ -1184,13 +1184,13 @@ MyApp = (function(Backbone, $) {
     },
     browse: function() {
       var listContactsView = new ListContactsView({ collection: new Contacts() });
-      this.pageManager.setCurrentUri(Backbone.history.getHash());
+      this.pageManager.setCurrentUri(Backbone.history.getFragment());
       this.pageManager.showView(listContactsView);
     },
     viewContact: function(id) {
       var model = new Contact({ _id: id });
       var displayContactView = new DisplayContactView({ model: model, currentPageUri: '/#' + this.pageManager.getCurrentUri() });
-      this.pageManager.setCurrentUri(Backbone.history.getHash());
+      this.pageManager.setCurrentUri(Backbone.history.getFragment());
       this.pageManager.showView(displayContactView);
     },
     confirmDelete: function(id) {
