@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry excluding="node_modules/express/node_modules/mkdirp/test/|node_modules/express/lib/router/|node_modules/express/node_modules/connect/node_modules/formidable/test/legacy/|node_modules/express/node_modules/connect/|node_modules/express/node_modules/mkdirp/examples/|routes/|node_modules/express/node_modules/connect/node_modules/formidable/test/|node_modules/jade/node_modules/mkdirp/test/|node_modules/jade/node_modules/commander/lib/|node_modules/express/testing/foo/routes/|node_modules/express/node_modules/qs/|node_modules/jade/lib/nodes/|node_modules/express/node_modules/mkdirp/|node_modules/express/node_modules/connect/node_modules/formidable/test/legacy/integration/|node_modules/express/node_modules/connect/node_modules/formidable/test/unit/|node_modules/express/node_modules/connect/node_modules/formidable/test/legacy/system/|node_modules/express/lib/|node_modules/express/lib/view/|node_modules/express/node_modules/connect/node_modules/formidable/example/|node_modules/express/node_modules/connect/node_modules/formidable/|node_modules/express/|node_modules/express/node_modules/connect/node_modules/formidable/test/fixture/|node_modules/express/testing/|node_modules/jade/|node_modules/express/node_modules/connect/lib/middleware/|node_modules/express/node_modules/connect/node_modules/formidable/test/integration/|node_modules/jade/node_modules/mkdirp/|node_modules/express/node_modules/connect/lib/middleware/session/|node_modules/express/node_modules/connect/lib/|node_modules/express/node_modules/connect/node_modules/formidable/test/fixture/js/|node_modules/jade/node_modules/mkdirp/examples/|node_modules/express/node_modules/qs/lib/|node_modules/express/node_modules/connect/node_modules/formidable/benchmark/|node_modules/express/testing/foo/|node_modules/express/node_modules/connect/node_modules/formidable/tool/|node_modules/jade/node_modules/commander/|node_modules/jade/lib/|node_modules/express/node_modules/connect/node_modules/formidable/test/legacy/simple/|node_modules/express/node_modules/qs/test/|node_modules/express/node_modules/connect/node_modules/formidable/lib/|node_modules/express/node_modules/mime/" kind="src" path=""/>
+	<classpathentry excluding="node_modules/mkdirp/test/|lib/router/|node_modules/connect/node_modules/formidable/test/legacy/|node_modules/connect/|node_modules/mkdirp/examples/|node_modules/connect/node_modules/formidable/test/|testing/foo/routes/|node_modules/qs/|node_modules/mkdirp/|node_modules/connect/node_modules/formidable/test/legacy/integration/|node_modules/connect/node_modules/formidable/test/unit/|node_modules/connect/node_modules/formidable/test/legacy/system/|lib/|lib/view/|node_modules/connect/node_modules/formidable/example/|node_modules/connect/node_modules/formidable/|node_modules/connect/node_modules/formidable/test/fixture/|testing/|node_modules/connect/lib/middleware/|node_modules/connect/node_modules/formidable/test/integration/|node_modules/connect/lib/middleware/session/|node_modules/connect/lib/|node_modules/connect/node_modules/formidable/test/fixture/js/|node_modules/qs/lib/|node_modules/connect/node_modules/formidable/benchmark/|testing/foo/|node_modules/connect/node_modules/formidable/tool/|node_modules/connect/node_modules/formidable/test/legacy/simple/|node_modules/qs/test/|node_modules/connect/node_modules/formidable/lib/|node_modules/mime/" kind="src" path="node_modules/express"/>
+	<classpathentry excluding="router/|view/" kind="src" path="node_modules/express/lib"/>
+	<classpathentry kind="src" path="node_modules/express/lib/router"/>
+	<classpathentry kind="src" path="node_modules/express/lib/view"/>
+	<classpathentry excluding="node_modules/formidable/test/legacy/|node_modules/formidable/test/|node_modules/formidable/test/legacy/integration/|node_modules/formidable/test/unit/|node_modules/formidable/test/legacy/system/|node_modules/formidable/example/|node_modules/formidable/|node_modules/formidable/test/fixture/|lib/middleware/|node_modules/formidable/test/integration/|lib/middleware/session/|lib/|node_modules/formidable/test/fixture/js/|node_modules/formidable/benchmark/|node_modules/formidable/tool/|node_modules/formidable/test/legacy/simple/|node_modules/formidable/lib/" kind="src" path="node_modules/express/node_modules/connect"/>
+	<classpathentry excluding="middleware/|middleware/session/" kind="src" path="node_modules/express/node_modules/connect/lib"/>
+	<classpathentry excluding="session/" kind="src" path="node_modules/express/node_modules/connect/lib/middleware"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/connect/lib/middleware/session"/>
+	<classpathentry excluding="test/legacy/|test/|test/legacy/integration/|test/unit/|test/legacy/system/|example/|test/fixture/|test/integration/|test/fixture/js/|benchmark/|tool/|test/legacy/simple/|lib/" kind="src" path="node_modules/express/node_modules/connect/node_modules/formidable"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/connect/node_modules/formidable/benchmark"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/connect/node_modules/formidable/example"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/connect/node_modules/formidable/lib"/>
+	<classpathentry excluding="legacy/|legacy/integration/|unit/|legacy/system/|fixture/|integration/|fixture/js/|legacy/simple/" kind="src" path="node_modules/express/node_modules/connect/node_modules/formidable/test"/>
+	<classpathentry excluding="js/" kind="src" path="node_modules/express/node_modules/connect/node_modules/formidable/test/fixture"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/connect/node_modules/formidable/test/fixture/js"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/connect/node_modules/formidable/test/integration"/>
+	<classpathentry excluding="integration/|system/|simple/" kind="src" path="node_modules/express/node_modules/connect/node_modules/formidable/test/legacy"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/connect/node_modules/formidable/test/legacy/integration"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/connect/node_modules/formidable/test/legacy/simple"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/connect/node_modules/formidable/test/legacy/system"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/connect/node_modules/formidable/test/unit"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/connect/node_modules/formidable/tool"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/mime"/>
+	<classpathentry excluding="test/|examples/" kind="src" path="node_modules/express/node_modules/mkdirp"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/mkdirp/examples"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/mkdirp/test"/>
+	<classpathentry excluding="lib/|test/" kind="src" path="node_modules/express/node_modules/qs"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/qs/lib"/>
+	<classpathentry kind="src" path="node_modules/express/node_modules/qs/test"/>
+	<classpathentry excluding="foo/routes/|foo/" kind="src" path="node_modules/express/testing"/>
+	<classpathentry excluding="routes/" kind="src" path="node_modules/express/testing/foo"/>
+	<classpathentry kind="src" path="node_modules/express/testing/foo/routes"/>
+	<classpathentry excluding="node_modules/mkdirp/test/|node_modules/commander/lib/|lib/nodes/|node_modules/mkdirp/|node_modules/mkdirp/examples/|node_modules/commander/|lib/" kind="src" path="node_modules/jade"/>
+	<classpathentry excluding="nodes/" kind="src" path="node_modules/jade/lib"/>
+	<classpathentry kind="src" path="node_modules/jade/lib/nodes"/>
+	<classpathentry excluding="lib/" kind="src" path="node_modules/jade/node_modules/commander"/>
+	<classpathentry kind="src" path="node_modules/jade/node_modules/commander/lib"/>
+	<classpathentry excluding="test/|examples/" kind="src" path="node_modules/jade/node_modules/mkdirp"/>
+	<classpathentry kind="src" path="node_modules/jade/node_modules/mkdirp/examples"/>
+	<classpathentry kind="src" path="node_modules/jade/node_modules/mkdirp/test"/>
+	<classpathentry kind="src" path="routes"/>
+	<classpathentry kind="con" path="org.eclipse.wst.jsdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="output" path=""/>
+</classpath>

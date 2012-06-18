@@ -1017,12 +1017,11 @@ MyApp = (function(Backbone, $) {
      * new button is clicked.
      */
     clearActiveButton: function(event) {
-      var $clickedElement = $(event.currentTarget);
       // Only clear buttons if the newly clicked link is for a new page 
       // (i.e. the link doesn't open in a modal). This is required since 
       // a model is viewed within the current page, thus the active 
       // button doesn't need to change.
-      if ($clickedElement.hasClass('openInDialog') === false) {
+      if (event.openInDialog === false) {
         this.$('.button').each(function(index, element) {
           var $menuItem = $(element);
           if ($menuItem.hasClass('button-active')) {
