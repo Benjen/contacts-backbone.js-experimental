@@ -71,10 +71,9 @@ MyApp = (function(Backbone, $) {
   // which are not directly utilized. Listing them in this manner is to help the 
   // developer understand which events are available through the eventAggregator.
   eventAggregator.on('click:addContact', function() {});
+//  eventAggregator.on('click:editContact', function() {});
   eventAggregator.on('click:menuButton', function() {});
-  eventAggregator.on('load:page', function() {
-    console.log('...load:page...');
-  });
+  eventAggregator.on('load:page', function() {});
   eventAggregator.on('post-delete:contact', function() {});
   eventAggregator.on('pre-delete:contact', function() {});
   eventAggregator.on('redirect:parentPage', function() {});
@@ -84,9 +83,13 @@ MyApp = (function(Backbone, $) {
    * View Manager
    * 
    * Closes current view and renders new one. Used to "kill" views when 
-   * they are no longer in use (i.e. when one switches to a new view).
+   * they are no longer in use (i.e. when one switches to a new view). 
+   * Also used to track the current URL.
    */
-  function AppView() {
+  function PageManager() {
+    /**
+     * Show page
+     */
     this.showView = function(view) {
       // Close the current view.
       if (this.currentView){
@@ -96,6 +99,12 @@ MyApp = (function(Backbone, $) {
       this.currentView = view;
       // Add view to page. 
       $('#content').html(this.currentView.el);
+    };
+    this.getCurrentUri = function() {
+      return this.currentUri;
+    };
+    this.setCurrentUri = function(uri) {
+      this.currentUri = uri;
     };
   };
 
@@ -295,12 +304,14 @@ MyApp = (function(Backbone, $) {
    */
   var DisplayContactView = Backbone.View.extend({
     events: {
-      'click #delete-contact-button': 'deleteContact'
+      'click #delete-contact-button': 'deleteContact',
+      'click #edit-contact-button': 'editContact'
     },
     initialize: function() {
-      _.bindAll(this, 'deleteContact', 'render');
+      _.bindAll(this, 'deleteContact', 'editContact', 'render');
       // define template in initialize function to ensure DOM has loaded.
       this.template = _.template($('#display-contact-tpl').html());
+      this.currentPageUri = this.options.currentPageUri;
       this.model = this.options.model;
       // Add parse method since parsing is not done by collection in this 
       // instance, as this model is not called in the scope of collection 
@@ -336,7 +347,7 @@ MyApp = (function(Backbone, $) {
                   // Remove view. This results in contact being removed from browse list.
                   self.$el.fadeOut('slow');
                   // return to parent page.
-                  eventAggregator.trigger('redirect:parentPage', window.location.hash);
+                  eventAggregator.trigger('redirect:parentPage', self.currentPageUri);
                 },
                 error: function(model, response) {
                   console.log(response);
@@ -369,6 +380,9 @@ MyApp = (function(Backbone, $) {
       // Create confirm delete dialog.
       $dialog.dialog(dialogOptions);
     },
+    editContact: function() {
+      eventAggregator.trigger('load:page', { uri: '/#contact/edit/' + this.model.id });
+    },
     onClose: function() {},
     render: function() {
       this.$el
@@ -389,6 +403,8 @@ MyApp = (function(Backbone, $) {
       this._editFormTemplate = _.template($('#edit-contact-form-tpl').html());
       this._emailFieldTemplate = _.template($('#email-field-tpl').html());
       this._phoneFieldTemplate = _.template($('#phone-field-tpl').html());
+      // Get URI of current page.
+      this.currentPageUri = this.options.currentPageUri;
       // Create array to hold references to all subviews. 
       this.subViews = new Array();
       // Set options for new or existing contact.
@@ -419,7 +435,8 @@ MyApp = (function(Backbone, $) {
             click: function(event, ui) {
               self.saveContact(event);
               // Reload the current page. The reloading is handled by the Router.
-              eventAggregator.trigger('load:page', { uri: '/' + window.location.hash, openInDialog: false });
+              console.log(self.currentPageUri);
+              eventAggregator.trigger('load:page', { uri: self.currentPageUri });
               // Close dialog.
               $dialog.dialog('close');
               // Destroy current View.
@@ -978,7 +995,7 @@ MyApp = (function(Backbone, $) {
       var uri = this.$('.button').attr('href');
       var openInDialog = (this.$('.button').hasClass('openInDialog')) ? true : false ;
       // Delegate click event to Router and other relevant Views.
-      eventAggregator.trigger('click:menuButton', { uri: uri, openInDialog: openInDialog });
+      eventAggregator.trigger('click:menuButton', { uri: uri });
       // Apply active button class to menu item if linked content does 
       // not open in dialog (i.e. content will open in a new page).
       if (this.$('.button').hasClass('openInDialog') === false) {
@@ -1037,13 +1054,6 @@ MyApp = (function(Backbone, $) {
         this.$('ul').append(menuItemView.render().el);
       });
       return this;
-    },
-    /**
-     * Add active button effect to menu button based on current page URI
-     */
-    setActiveButton: function() {
-      var uri = window.location.pathname + window.location.hash;
-      this.$('a[href="' + uri + '"]').addClass('button-active');
     }
   });
 
@@ -1142,40 +1152,46 @@ MyApp = (function(Backbone, $) {
   var ClientSideRouter = Backbone.Router.extend({
     routes: {
       'browse': 'browse',
-      'browse/view/:id': 'browseViewContact',
+      'browse/view/:id': 'viewContact',
       'orgs': 'orgs',
       'orgs/:orgName': 'orgs',
       'orgs/:orgName/:id': 'orgs',
       'contact/add': 'addContact',
-      'contact/view/:id': 'viewContact',
+      'contact/edit/:id': 'addContact',
+//      'contact/view/:id': 'viewContact',
       'contact/delete/:id': 'confirmDelete',
       '*path': 'defaultPage'
     },
     initialize: function(options) {
-      this.appView = options.appView;
-      _.bindAll(this, 'addContact', 'gotoPage', 'redirectToParentPage');
+      this.pageManager = options.pageManager;
+      _.bindAll(this, 'addContact', 'browse', 'gotoPage', 'redirectToParentPage', 'viewContact');
       // Bind events.
       eventAggregator.bind('redirect:parentPage', this.redirectToParentPage);
-      eventAggregator.bind('click:addContact', this.addContact);
       eventAggregator.bind('click:menuButton', this.gotoPage);
       eventAggregator.bind('load:page', this.gotoPage);
-      // Create jQuery wrapped content variable.  Avoids having to make repeated calls for the same DOM object.
+      // Create jQuery wrapped content variable.  Avoids having to make 
+      // repeated calls for the same DOM object.
       this.$content = $('#content');
     },
     addContact: function() {
+      // Set browser URL to that of current page since this view opens 
+      // within a dialog within the current page.
+      this.navigate(this.pageManager.getCurrentUri(), { trigger: false });
       // Display contact edit form. Note that this.appView.showView() 
       // method is not used since this view contains its own method 
       // for closing itself.
-      var editContactFormView = new EditContactFormView();
+      var editContactFormView = new EditContactFormView({ currentPageUri: '/#' + this.pageManager.getCurrentUri() });
     },
     browse: function() {
       var listContactsView = new ListContactsView({ collection: new Contacts() });
-      this.appView.showView(listContactsView);
+      this.pageManager.setCurrentUri(Backbone.history.getHash());
+      this.pageManager.showView(listContactsView);
     },
-    browseViewContact: function(id) {
+    viewContact: function(id) {
       var model = new Contact({ _id: id });
-      var displayContactView = new DisplayContactView({ model: model });
-      this.appView.showView(displayContactView);
+      var displayContactView = new DisplayContactView({ model: model, currentPageUri: '/#' + this.pageManager.getCurrentUri() });
+      this.pageManager.setCurrentUri(Backbone.history.getHash());
+      this.pageManager.showView(displayContactView);
     },
     confirmDelete: function(id) {
       var confirmDeleteView = new ConfirmDeleteView(id);
@@ -1184,46 +1200,19 @@ MyApp = (function(Backbone, $) {
       this.$content.html('Default');
     },
     /**
-     * Filters which URL should be handled by the callback via this.routes 
-     * and which should directly use the callback without going via 
-     * this.routes.
+     * Ensures that URL hash will reload
      * 
-     * This is used to differentiate between pages which should open in the 
-     * browser (e.g. new pages) and pages which should open in a dialog within 
-     * the current page.  This is required as pages in dialogs should not 
-     * change the URL in the browser.  This function also ensures that a url 
-     * will reload if the same link is clicked in succession.  This is normally 
-     * a problem since Backbon.js utilizes hashed URIs. Normally a browser will 
-     * not reload a hashed URI if the browser is already at that location.
+     * This function ensures that a url will reload if the same link is clicked in succession.  
+     * This is normally a problem since Backbone.js utilizes hashed URI fragments. Normally a browser 
+     * will not reload a hashed URI if the browser is already at that location. 
      * 
      * @param Object args
      *   contains required arguments.
      *   args.uri
-     *     String containing the the URI to be loaded.
-     *   args.openInDialog
-     *     Boolean denoting whether the route should be opened in a dialog.
+     *     String containing the the URI to be loaded. 
      */
     gotoPage: function(args) {
-//      var regexPattern = new RegExp("^/#[A-Za-z0-9_-\.]{1,}$");
-//      console.log(args.uri);
-//      if (regexPattern.test(args.uri) === false) {
-//        throw error = new Error('URI should have a leading forward-slash + hash (e.g. \'/#browse/view\').');
-//      }
-      if (args.openInDialog === true) {
-        // Get route callback function. Route keys must not contain leading 
-        // forward-slash + hash in order to work properly.  For example, the 
-        // key in Router.routes for URI '/#browse' is 'browse'.
-        var route = args.uri.replace(/\/#/, '');
-        var routeCallbackName = this.routes[route];
-        // Directly run route callback without going through Router.routes.  
-        this[routeCallbackName].call(this);
-      }
-      else {
-        // URI must have a leading forward-slash + hash to work correctly 
-        // (e.g. '/#browse').
-        this.navigate(args.uri, { trigger: true });
-      }
-      console.log('...gotoPage...');
+      this.navigate(args.uri, { trigger: true });
     },
     home: function() {
       this.$content.html('Home');
@@ -1242,16 +1231,6 @@ MyApp = (function(Backbone, $) {
       var temp = uri.split('/', 1);
       var parentUri = temp[0];
       this.navigate(parentUri, { trigger: true });
-    },
-    viewContact: function(id) {
-      var self = this;
-      $.ajax({
-        url: '/contact/view/' + id,
-        dataType: 'html',
-        success: function(data) {
-          self.$content.html(data);
-        }
-      });
     }
   });
   
@@ -1261,7 +1240,7 @@ MyApp = (function(Backbone, $) {
   return {
     init: function(options) {
       // Add view manager.
-      var appView = new AppView();
+      var pageManager = new PageManager();
       // Create menu collection.
       var menu = new Menu();
       menu.add(options.menuItems);
@@ -1271,7 +1250,7 @@ MyApp = (function(Backbone, $) {
       var flashMessagesView = new FlashMessagesView();
       // Start router.
       var clientSideRouter = new ClientSideRouter({ 
-        appView: appView
+        pageManager: pageManager
       });
       Backbone.history.start();
     }
