@@ -464,13 +464,29 @@ MyApp = (function(Backbone, $) {
       var emailFieldsetView = new EmailFieldsetView({ model: this.model });
       // Add to subviews array. Useful if need to process subviews later (e.g. if need to run onClose() methods on subviews).
       this.subViews.push(emailFieldsetView);
-//      emailFieldsetView.render();
       this.$('fieldset.email').append(emailFieldsetView.render().el);
       // Attach phone fieldset.
       var phoneFieldsetView = new PhoneFieldsetView({ model: this.model });
       // Add to subviews array. Useful if need to process subviews later (e.g. if need to run onClose() methods on subviews).
       this.subViews.push(phoneFieldsetView);
       this.$('fieldset.phone').append(phoneFieldsetView.render().el);
+      // Add jQuery UI autocomplete to org field.
+      this.$('#org-field').autocomplete({
+        source: function(req, res) {
+          $.ajax({
+            url: '/orgs.json?terms=' + encodeURIComponent(req.term),
+            type: 'GET',
+            success: function(data) { 
+              res(data); 
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+              alert('Something went wrong in the client side javascript.');
+            },
+            dataType: 'json',
+            cache: false
+          });
+        }
+      });
       this.$el.fadeIn(500);
       this.createDialog();
       return this;
@@ -898,42 +914,8 @@ MyApp = (function(Backbone, $) {
     }
   });
 
-  /**
-   * Org field
-   * 
-   * Implements organization "org" text field in add contact form. 
-   * Adds jQuery UI Autocomplete widget to field.
-   */
-//  var OrgTextFieldView = Backbone.View.extend({
-//    el: $('#org'),
-//    initialize: function() {
-//      _.bindAll(this, 'render');
-//      this.render();
-//    },
-//    render: function() {
-//      $(this.el).autocomplete({
-//        source: function(req, res) {
-//          $.ajax({
-//            url: '/orgs.json?terms=' + encodeURIComponent(req.term),
-//            type: 'GET',
-//            success: function(data) { 
-//              res(data); 
-//            },
-//            error: function(jqXHR, textStatus, errorThrown) {
-//              alert('Something went wrong in the client side javascript.');
-//            },
-//            dataType: 'json',
-//            cache: false
-//          });
-//        }
-//      });
-//      return this;
-//    }
-//  });
-  
-  // Create instance of OrgTextFieldView.
-//  var orgTextFieldView = new OrgTextFieldView();
 
+  
   /**
    * Model - Menu Item
    */
