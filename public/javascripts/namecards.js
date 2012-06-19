@@ -116,22 +116,17 @@ MyApp = (function(Backbone, $) {
     idAttribute: '_id',
     defaults: function() {
       return {
-        surname: 'Unknown',
+        surname: '',
         given_name: '',
         org: '',
         phone: new Array(
           {
-            value: '1111111',
-            type: 'other'
-          },
-          {
-            value: '2222222',
-            type: 'home'
+            value: '',
+            type: 'work'
           }
         ),
         email: new Array(
-          { value: 'qwerty@hotmail.com' },
-          { value: 'brent@skypey.com' }
+          { value: '' }
         ),
         address: new Array({
           street: '',
@@ -197,6 +192,7 @@ MyApp = (function(Backbone, $) {
    * View - Individual list item for Contact in list view. 
    */
   var ListContactsItemView = Backbone.View.extend({
+    tagName: 'li',
     initialize: function() {
       _.bindAll(this, 'removeContact', 'render');
       // Add templates.
@@ -347,6 +343,7 @@ MyApp = (function(Backbone, $) {
                   // Remove view. This results in contact being removed from browse list.
                   self.$el.fadeOut('slow');
                   // return to parent page.
+                  console.log(self.currentPageUri);
                   eventAggregator.trigger('redirect:parentPage', self.currentPageUri);
                 },
                 error: function(model, response) {
@@ -381,7 +378,7 @@ MyApp = (function(Backbone, $) {
       $dialog.dialog(dialogOptions);
     },
     editContact: function() {
-      eventAggregator.trigger('load:page', { uri: '/#contact/edit/' + this.model.id });
+      eventAggregator.trigger('load:page', { uri: '/#browse/edit/' + this.model.id });
     },
     onClose: function() {},
     render: function() {
@@ -408,18 +405,7 @@ MyApp = (function(Backbone, $) {
       // Create array to hold references to all subviews. 
       this.subViews = new Array();
       // Set options for new or existing contact.
-      this.model = new Contact();
-      // Add parse method since parsing is not done by collection in this 
-      // instance, as this model is not called in the scope of collection 
-      // Contacts.
-      this.model.parse = function(response) {
-        return response.data;
-      };
-      if (typeof this.options.contactId !== 'undefined') {
-        // Retrieve contact
-        this.model.fetch();
-      }
-      // Manually trigger view render, since model is unchanged (i.e. was not fetched).
+      this.model = this.options.model;
       this.render();
     },
     createDialog: function() {
@@ -435,7 +421,6 @@ MyApp = (function(Backbone, $) {
             click: function(event, ui) {
               self.saveContact(event);
               // Reload the current page. The reloading is handled by the Router.
-              console.log(self.currentPageUri);
               eventAggregator.trigger('load:page', { uri: self.currentPageUri });
               // Close dialog.
               $dialog.dialog('close');
@@ -471,22 +456,21 @@ MyApp = (function(Backbone, $) {
       });
     },
     render: function() {
-      var self = this;
+      console.log(this.model.attributes);
       this.$el
         .hide()
-        .html(this._editFormTemplate({ contact: self.model.toJSON() }));
+        .html(this._editFormTemplate({ contact: this.model.attributes }));
       // Attach email fieldset subview.
       var emailFieldsetView = new EmailFieldsetView({ model: this.model });
       // Add to subviews array. Useful if need to process subviews later (e.g. if need to run onClose() methods on subviews).
       this.subViews.push(emailFieldsetView);
-      emailFieldsetView.render();
-      this.$('fieldset.email').append(emailFieldsetView.$el);
+//      emailFieldsetView.render();
+      this.$('fieldset.email').append(emailFieldsetView.render().el);
       // Attach phone fieldset.
       var phoneFieldsetView = new PhoneFieldsetView({ model: this.model });
       // Add to subviews array. Useful if need to process subviews later (e.g. if need to run onClose() methods on subviews).
       this.subViews.push(phoneFieldsetView);
-      phoneFieldsetView.render();
-      this.$('fieldset.phone').append(phoneFieldsetView.$el);
+      this.$('fieldset.phone').append(phoneFieldsetView.render().el);
       this.$el.fadeIn(500);
       this.createDialog();
       return this;
@@ -500,6 +484,7 @@ MyApp = (function(Backbone, $) {
       // Update model with form values.
       this.updateContact();
       // Save contact to database.
+      console.log(this.model.attributes);
       this.model.save(this.model.attributes, {
         success: function(model, response) {
           if (typeof response.flash !== 'undefined') {
@@ -507,7 +492,7 @@ MyApp = (function(Backbone, $) {
           }
         },
         error: function(model, response) {
-          throw error = new Error('Error occured while saving contact.');
+          throw error = new Error('Error occured while trying to save contact.');
         }
       }, { wait: true });
     },
@@ -551,6 +536,7 @@ MyApp = (function(Backbone, $) {
       // Add templates.
       this._emailFieldTemplate = _.template($('#email-field-tpl').html());
       this._emailFieldsetTemplate = _.template($('#email-fieldset-tpl').html());
+      // Set model.
       this.model = this.options.model;
     },
     /**
@@ -559,6 +545,7 @@ MyApp = (function(Backbone, $) {
      *   jQuery object to which the sortable effect is to be added.
      */
     addSortableFields: function($emailFields) {
+      console.log('addSortableFields');
       var self = this;
       $emailFields.sortable({
         handle: '.drag-handle',
@@ -702,8 +689,13 @@ MyApp = (function(Backbone, $) {
      */
     render: function() {
       this.$el.html(this._emailFieldsetTemplate({ emailFields: this.getFieldsHtml() }));
+      // Ensure at least one blank field is provided should there be no email values for given contact.
+      if (this.model.get('email').length === 0) {
+        this.appendNewField();
+      }
       // Add sortable effect if more than one field present.
       var $emailFields = this.$('#email-fields');
+      console.log(this.model.get('email').length);
       if (this.model.get('email').length > 1) {
         this.addSortableFields($emailFields);
       }
@@ -893,6 +885,10 @@ MyApp = (function(Backbone, $) {
      */
     render: function() {
       this.$el.html(this._phoneFieldsetTemplate({ phoneFields: this.getFieldsHtml() }));
+      // Ensure at least one blank field is provided should there be no phone values for given contact.
+      if (this.model.get('phone').length === 0) {
+        this.appendNewField();
+      }
       // Add sortable effect if more than one field present.
       var $phoneFields = this.$('#phone-fields');
       if (this.model.get('phone').length > 1) {
@@ -995,18 +991,15 @@ MyApp = (function(Backbone, $) {
       var uri = this.$('.button').attr('href');
       var openInDialog = (this.$('.button').hasClass('openInDialog')) ? true : false ;
       // Delegate click event to Router and other relevant Views.
-      eventAggregator.trigger('click:menuButton', { uri: uri });
+      eventAggregator.trigger('click:menuButton', { uri: uri, openInDialog: this.model.get('openInDialog') });
       // Apply active button class to menu item if linked content does 
       // not open in dialog (i.e. content will open in a new page).
-      if (this.$('.button').hasClass('openInDialog') === false) {
+      if (this.model.get('openInDialog') === false) {
         this.$('.button').addClass('button-active');
       }
     },
     render: function() {
       var $element = $('<a class="button" title="' + this.model.get('text') + '" href="' + this.model.get('url') + '"><span>' + this.model.get('text') + '</span></a>');
-      if (this.model.get('openInDialog') === true) {
-        $element.addClass('openInDialog');
-      }
       this.$el.append($element);
       return this;
     }
@@ -1034,6 +1027,7 @@ MyApp = (function(Backbone, $) {
      * new button is clicked.
      */
     clearActiveButton: function(event) {
+      console.log(event);
       // Only clear buttons if the newly clicked link is for a new page 
       // (i.e. the link doesn't open in a modal). This is required since 
       // a model is viewed within the current page, thus the active 
@@ -1153,13 +1147,14 @@ MyApp = (function(Backbone, $) {
     routes: {
       'browse': 'browse',
       'browse/view/:id': 'viewContact',
+      'browse/edit/:id': 'addContact',
       'orgs': 'orgs',
       'orgs/:orgName': 'orgs',
       'orgs/:orgName/:id': 'orgs',
       'contact/add': 'addContact',
       'contact/edit/:id': 'addContact',
 //      'contact/view/:id': 'viewContact',
-      'contact/delete/:id': 'confirmDelete',
+//      'contact/delete/:id': 'confirmDelete',
       '*path': 'defaultPage'
     },
     initialize: function(options) {
@@ -1173,28 +1168,46 @@ MyApp = (function(Backbone, $) {
       // repeated calls for the same DOM object.
       this.$content = $('#content');
     },
-    addContact: function() {
+    addContact: function(id) {
+      var self = this;
+      var model;
+      if (typeof id !== 'undefined') {
+        // Get Model data from server if is an existing contact.
+        model = new Contact({ _id: id });
+        model.parse = function(response) {
+          return response.data;
+        };
+        model.fetch({ 
+          success: function() {
+            // Display contact edit form. Note that this.appView.showView() 
+            // method is not used since this view contains its own method 
+            // for closing itself.
+            var editContactFormView = new EditContactFormView({ model: model, currentPageUri: '/#' + self.pageManager.getCurrentUri() });
+          } 
+        });
+      }
+      else {
+        // Create new Model.
+        model = new Contact();
+        // Display contact edit form. Note that this.appView.showView() 
+        // method is not used since this view contains its own method 
+        // for closing itself.
+        var editContactFormView = new EditContactFormView({ model: model, currentPageUri: '/#' + this.pageManager.getCurrentUri() });
+      }
       // Set browser URL to that of current page since this view opens 
       // within a dialog within the current page.
       this.navigate(this.pageManager.getCurrentUri(), { trigger: false });
-      // Display contact edit form. Note that this.appView.showView() 
-      // method is not used since this view contains its own method 
-      // for closing itself.
-      var editContactFormView = new EditContactFormView({ currentPageUri: '/#' + this.pageManager.getCurrentUri() });
     },
     browse: function() {
-      var listContactsView = new ListContactsView({ collection: new Contacts() });
       this.pageManager.setCurrentUri(Backbone.history.getFragment());
+      var listContactsView = new ListContactsView({ collection: new Contacts() });
       this.pageManager.showView(listContactsView);
     },
     viewContact: function(id) {
       var model = new Contact({ _id: id });
-      var displayContactView = new DisplayContactView({ model: model, currentPageUri: '/#' + this.pageManager.getCurrentUri() });
       this.pageManager.setCurrentUri(Backbone.history.getFragment());
+      var displayContactView = new DisplayContactView({ model: model, currentPageUri: '/#' + this.pageManager.getCurrentUri() });
       this.pageManager.showView(displayContactView);
-    },
-    confirmDelete: function(id) {
-      var confirmDeleteView = new ConfirmDeleteView(id);
     },
     defaultPage: function(path) {
       this.$content.html('Default');
@@ -1226,10 +1239,19 @@ MyApp = (function(Backbone, $) {
         this.$content.html(' ' + id);
       }
     },
+    /**
+     * Redirect to parent page
+     * 
+     * Work out parent URI based on current URI.
+     * 
+     * @param String uri
+     *   URI of current page.
+     */
     redirectToParentPage: function(uri) {
       // Extract parent page info from URI.
       var temp = uri.split('/', 1);
       var parentUri = temp[0];
+      console.log(parentUri);
       this.navigate(parentUri, { trigger: true });
     }
   });

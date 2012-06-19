@@ -169,7 +169,6 @@ exports.addForm = function(req, res) {
 exports.deleteContact = function(req, res) {
   var id = req.params.id;
   var Contact = mongoose.model('Contact');
-  console.log(id);
   Contact.remove({ _id: id }, function(err) {
     if (err) {
       console.log();
@@ -719,207 +718,216 @@ exports.delContact = function(req, res, format, id) {
 
 exports.putContact = function(req, res) {
   var Contact = mongoose.model('Contact');
-  var contact = new Contact();
-  var contactInfo = new Object();
-  var errors = new Array();
-  var emails = new Array();
-  
-  // Extract phone numbers and types.
-  if (_.isString(req.body.phone.value)) {
-    // Ensure value of object number is an array. For some reason 
-    // if only one phone field is present in the form, then it is 
-    // passed as a string instead of a string within an Array.
-    req.body.phone.value = new Array(req.body.phone.value);
-  }
-  if (_.isString(req.body.phone.type)) {
-    // Ensure value of object type is an array. For some reason 
-    // if only one phone field is present in the form, then it is 
-    // passed as a string instead of a string within an Array.
-    req.body.phone.type = new Array(req.body.phone.type);
-  }
-  // Filter out empty phone fields and convert phone numbers to array for easier parsing. 
-  var phoneNumbers = namecards.extractValidValuesToArray(req.body.phone);
-  req.body.phone = phoneNumbers;
+  var contact = new Contact(req.body);
 
-  // Extract email addresses.
-  if (_.isString(req.body.email) === true) {
-    // Ensure value of object email is an array. For some reason 
-    // if only one phone field is present in the form, then it is 
-    // passed as an object instead of a string within an Array.
-    emails.push(req.body.email);
-    req.body.email = emails;
-  }
-  // Filter out empty email fields. This is to avoid validation failure
-  // on blank/empty fields, and prevents blank fields being saved to 
-  // database.
-  var i = 0;
-  _.each(req.body.email, function(item) {
-    if (typeof item !== 'string' || (typeof item === 'string' && item.trim() === '')) {
-      // Remove email from list.
-      req.body.email.splice(i, 1);
-    }
-    i++;
-  });
-  
-  // Validate surname. Is a required field.
-  try {
-    check(req.body.surname).notEmpty();
-  }
-  catch (err) {
-    errors.push({ field: 'surname', msg: 'Must enter a surname.' });
-  }
-  
-  
-  // Validate phone numbers.
-  _.each(req.body.phone, function(item, index, list) {
-    try {
-      check(item.value).is(/^\+[0-9]{1,}\ \([0-9]{1,}\)\ ([0-9]{1,}|[0-9]{1,}-[0-9]{1,})$/);
-      list[index].error = false;
-    }
-    catch (err) {
-      list[index].error = true;
-      var phoneErrors = _.any(errors, function(item) {
-        return item.field === 'phone';
-      });
-      if (!phoneErrors) {
-        errors.push({ field: 'phone', msg: 'Invalid phone number. Correct format is +86 (10) 54367998.' });
-      }
-    }
-  });
-  
-  // Validate email addresses.  Must be a valid email address format.
-  var emailValidationError = new Array();
-  _.each(req.body.email, function(item) {
-    try {
-      check(item).isEmail();
-      emailValidationError.push(false);
-    }
-    catch (err) {
-      emailValidationError.push(true);
-      var emailErrors = _.any(errors, function(item) {
-        return item.field === 'email';
-      });
-      if (!emailErrors) {
-        errors.push({ field: 'email', msg: 'Invalid email address.' });
-      }
-    }
-  });
- 
-  // Action to take if any errors occurred.
-  if (errors.length) {
-    // Add existing form data to request object.
-    req.formData = {
-      surname: {
-        value: req.body.surname,
-        error: false
-      },
-      given_name: {
-        value: req.body.given_name,
-        error: false
-      },
-      org: {
-        value: req.body.org,
-        error: false
-      },
-      phone: req.body.phone,
-      email: {
-        value: req.body.email,
-        error: emailValidationError
-      },
-      address: {
-        street: {
-          value: req.body.street,
-          error: false
-        },
-        district: {
-          value: req.body.district,
-          error: false
-        },
-        city: {
-          value: req.body.city,
-          error: false
-        },
-        country: {
-          value: req.body.country,
-          error: false
-        },
-        postcode: {
-          value: req.body.postcode,
-          error: false
-        }
-      }
-    };
-    // Modify error status of selected elements. 
-    var surnameError = _.any(errors, function(item) {
-      return item.field === 'surname';
-    });
-    if (surnameError) {
-      req.formData.surname.error = true;
-    }
-    
-    // Add validation errors to flash messages queue.
-    var num = errors.length;
-    for (var i = 0; i < num; i++) {
-      req.flash('error', errors[i].msg);
-    }
-    
-    // Reload form.
-    exports.editContact(req, res);
-    return;
-  }
-
-  // Validation passed so prepare model for saving in database.
-  contactInfo.surname = req.body.surname;
-  contactInfo.given_name = req.body.given_name;
-  contactInfo.org = req.body.org;
-  contactInfo.phone = req.body.phone;
-  // Remove error property from phone, as not required by DB schema.  
-  // Can't use Mongoose middleware, as middleware doesn't support 
-  // update method. Could replace Schema.update with Schema.find and 
-  // Schema.save to access save method middleware, but this requires 
-  // two database calls (i.e. not efficient).  
-  contactInfo.phone.forEach(function(item, index, list) {
-    if (typeof item.error !== undefined) {
-      item.error = undefined;
-    }
-  });
-  
-  contactInfo.email = new Array();
-  _.each(req.body.email, function(item) {
-    contactInfo.email.push({ value: item });
-  });
-  
-  contactInfo.address = new Array();
-  contactInfo.address.push({
-    street: req.body.street,
-    district: req.body.district,
-    city: req.body.city,
-    country: req.body.country,
-    postcode: req.body.postcode
-  });
-  
+//  var contactInfo = new Object();
+//  var errors = new Array();
+//  var emails = new Array();
+//  
+//  // Extract phone numbers and types.
+//  if (_.isString(req.body.phone.value)) {
+//    // Ensure value of object number is an array. For some reason 
+//    // if only one phone field is present in the form, then it is 
+//    // passed as a string instead of a string within an Array.
+//    req.body.phone.value = new Array(req.body.phone.value);
+//  }
+//  if (_.isString(req.body.phone.type)) {
+//    // Ensure value of object type is an array. For some reason 
+//    // if only one phone field is present in the form, then it is 
+//    // passed as a string instead of a string within an Array.
+//    req.body.phone.type = new Array(req.body.phone.type);
+//  }
+//  // Filter out empty phone fields and convert phone numbers to array for easier parsing. 
+//  var phoneNumbers = namecards.extractValidValuesToArray(req.body.phone);
+//  req.body.phone = phoneNumbers;
+//
+//  // Extract email addresses.
+//  if (_.isString(req.body.email) === true) {
+//    // Ensure value of object email is an array. For some reason 
+//    // if only one phone field is present in the form, then it is 
+//    // passed as an object instead of a string within an Array.
+//    emails.push(req.body.email);
+//    req.body.email = emails;
+//  }
+//  // Filter out empty email fields. This is to avoid validation failure
+//  // on blank/empty fields, and prevents blank fields being saved to 
+//  // database.
+//  var i = 0;
+//  _.each(req.body.email, function(item) {
+//    if (typeof item !== 'string' || (typeof item === 'string' && item.trim() === '')) {
+//      // Remove email from list.
+//      req.body.email.splice(i, 1);
+//    }
+//    i++;
+//  });
+//  
+//  // Validate surname. Is a required field.
+//  try {
+//    check(req.body.surname).notEmpty();
+//  }
+//  catch (err) {
+//    errors.push({ field: 'surname', msg: 'Must enter a surname.' });
+//  }
+//  
+//  
+//  // Validate phone numbers.
+//  _.each(req.body.phone, function(item, index, list) {
+//    try {
+//      check(item.value).is(/^\+[0-9]{1,}\ \([0-9]{1,}\)\ ([0-9]{1,}|[0-9]{1,}-[0-9]{1,})$/);
+//      list[index].error = false;
+//    }
+//    catch (err) {
+//      list[index].error = true;
+//      var phoneErrors = _.any(errors, function(item) {
+//        return item.field === 'phone';
+//      });
+//      if (!phoneErrors) {
+//        errors.push({ field: 'phone', msg: 'Invalid phone number. Correct format is +86 (10) 54367998.' });
+//      }
+//    }
+//  });
+//  
+//  // Validate email addresses.  Must be a valid email address format.
+//  var emailValidationError = new Array();
+//  _.each(req.body.email, function(item) {
+//    try {
+//      check(item).isEmail();
+//      emailValidationError.push(false);
+//    }
+//    catch (err) {
+//      emailValidationError.push(true);
+//      var emailErrors = _.any(errors, function(item) {
+//        return item.field === 'email';
+//      });
+//      if (!emailErrors) {
+//        errors.push({ field: 'email', msg: 'Invalid email address.' });
+//      }
+//    }
+//  });
+// 
+//  // Action to take if any errors occurred.
+//  if (errors.length) {
+//    // Add existing form data to request object.
+//    req.formData = {
+//      surname: {
+//        value: req.body.surname,
+//        error: false
+//      },
+//      given_name: {
+//        value: req.body.given_name,
+//        error: false
+//      },
+//      org: {
+//        value: req.body.org,
+//        error: false
+//      },
+//      phone: req.body.phone,
+//      email: {
+//        value: req.body.email,
+//        error: emailValidationError
+//      },
+//      address: {
+//        street: {
+//          value: req.body.street,
+//          error: false
+//        },
+//        district: {
+//          value: req.body.district,
+//          error: false
+//        },
+//        city: {
+//          value: req.body.city,
+//          error: false
+//        },
+//        country: {
+//          value: req.body.country,
+//          error: false
+//        },
+//        postcode: {
+//          value: req.body.postcode,
+//          error: false
+//        }
+//      }
+//    };
+//    // Modify error status of selected elements. 
+//    var surnameError = _.any(errors, function(item) {
+//      return item.field === 'surname';
+//    });
+//    if (surnameError) {
+//      req.formData.surname.error = true;
+//    }
+//    
+//    // Add validation errors to flash messages queue.
+//    var num = errors.length;
+//    for (var i = 0; i < num; i++) {
+//      req.flash('error', errors[i].msg);
+//    }
+//    
+//    // Reload form.
+//    exports.editContact(req, res);
+//    return;
+//  }
+//
+//  // Validation passed so prepare model for saving in database.
+//  contactInfo.surname = req.body.surname;
+//  contactInfo.given_name = req.body.given_name;
+//  contactInfo.org = req.body.org;
+//  contactInfo.phone = req.body.phone;
+//  // Remove error property from phone, as not required by DB schema.  
+//  // Can't use Mongoose middleware, as middleware doesn't support 
+//  // update method. Could replace Schema.update with Schema.find and 
+//  // Schema.save to access save method middleware, but this requires 
+//  // two database calls (i.e. not efficient).  
+//  contactInfo.phone.forEach(function(item, index, list) {
+//    if (typeof item.error !== undefined) {
+//      item.error = undefined;
+//    }
+//  });
+//  
+//  contactInfo.email = new Array();
+//  _.each(req.body.email, function(item) {
+//    contactInfo.email.push({ value: item });
+//  });
+//  
+//  contactInfo.address = new Array();
+//  contactInfo.address.push({
+//    street: req.body.street,
+//    district: req.body.district,
+//    city: req.body.city,
+//    country: req.body.country,
+//    postcode: req.body.postcode
+//  });
+//  
   var query = { _id: req.body._id };
   var updates = {
     $set: {
-      surname: contactInfo.surname,
-      given_name: contactInfo.given_name,
-      org: contactInfo.org,
-      address: contactInfo.address,
-      email: contactInfo.email,
-      phone: contactInfo.phone
+      surname: req.body.surname,
+      given_name: req.body.given_name,
+      org: req.body.org,
+      address: req.body.address,
+      email: req.body.email,
+      phone: req.body.phone
     }
   };
   var options = {};
   
-  Contact.update(query, updates, options, function(err, result) {
+  Contact.update(query, updates, options, function(err, numAffected) {
     if (err) {
-      res.send(err);
-      req.flash('error', 'Unable to update contact. Error message: ' + err.message);
+      console.log(err);
+      res.json({ 
+        flash: [
+          { type: 'error', text: 'Contact could not be updated. Error message: ' + err.message, sticky: true }
+        ]
+      }, 500);
     }
     else {
-      req.flash('info', 'Contact has been successfully updated.');
+      res.json({ 
+        flash: [
+          { type: 'info', text: 'Contact has been updated.' }
+        ]
+      }, 200);
     }
-    res.redirect('/contact/view/' + req.body._id);
+//    res.redirect('/contact/view/' + req.body._id);
   });
 };
 
