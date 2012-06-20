@@ -119,15 +119,8 @@ MyApp = (function(Backbone, $) {
         surname: '',
         given_name: '',
         org: '',
-        phone: new Array(
-          {
-            value: '',
-            type: 'work'
-          }
-        ),
-        email: new Array(
-          { value: '' }
-        ),
+        phone: new Array(),
+        email: new Array(),
         address: new Array({
           street: '',
           district: '',
@@ -456,7 +449,6 @@ MyApp = (function(Backbone, $) {
       });
     },
     render: function() {
-      console.log(this.model.attributes);
       this.$el
         .hide()
         .html(this._editFormTemplate({ contact: this.model.attributes }));
@@ -500,7 +492,6 @@ MyApp = (function(Backbone, $) {
       // Update model with form values.
       this.updateContact();
       // Save contact to database.
-      console.log(this.model.attributes);
       this.model.save(this.model.attributes, {
         success: function(model, response) {
           if (typeof response.flash !== 'undefined') {
@@ -561,7 +552,6 @@ MyApp = (function(Backbone, $) {
      *   jQuery object to which the sortable effect is to be added.
      */
     addSortableFields: function($emailFields) {
-      console.log('addSortableFields');
       var self = this;
       $emailFields.sortable({
         handle: '.drag-handle',
@@ -676,15 +666,23 @@ MyApp = (function(Backbone, $) {
       });
     },
     /**
-     * Extract form values and update Model 
+     * Extract form values and update Model
+     * 
+     *  This function is run when the form is being submitted. It filters out 
+     *  any blank fields and updates the Model with value extracted from form.
      */
     setEmailValues: function() {
+      // Array to store non-empty email field values. 
+      var emails = new Array();
       // Extract email form values.
-      var emails = _.clone(this.model.get('email'));
       var emailFields = this.$('.email-field');
-      _.each(emails, function(email, index) {
-        email.value = emailFields.eq(index).val();
+      _.each(_.clone(this.model.get('email')), function(email, index) {
+        // Filter out blank fields.
+        if (_.isEmpty(emailFields.eq(index).val()) === false) {
+          emails.push({ value: emailFields.eq(index).val() });
+        }
       });
+      // Update model with filtered email values.
       this.model.set('email', emails);
     },
     /**
@@ -711,7 +709,6 @@ MyApp = (function(Backbone, $) {
       }
       // Add sortable effect if more than one field present.
       var $emailFields = this.$('#email-fields');
-      console.log(this.model.get('email').length);
       if (this.model.get('email').length > 1) {
         this.addSortableFields($emailFields);
       }
@@ -870,17 +867,36 @@ MyApp = (function(Backbone, $) {
       });
     },
     /**
-     * Extract form values and update Model 
+     * Extract form values and update Model
+     * 
+     *  This function is run when the form is being submitted. It filters out 
+     *  any blank fields and updates the Model with value extracted from form.
      */
     setPhoneValues: function() {
-      // Extract phone form values.
-      var phones = _.clone(this.model.get('phone'));
+//      // Extract phone form values.
+//      var phones = _.clone(this.model.get('phone'));
+//      var phoneFields = this.$('.phone-field');
+//      var phoneTypes = this.$('.phone-type-select');
+//      _.each(phones, function(phone, index) {
+//        phone.value = phoneFields.eq(index).val();
+//        phone.type = phoneTypes.eq(index).val();
+//      });
+//      this.model.set('phone', phones);
+      // Array to store non-empty phone field values. 
+      var phones = new Array();
+      // Extract email form values.
       var phoneFields = this.$('.phone-field');
       var phoneTypes = this.$('.phone-type-select');
-      _.each(phones, function(phone, index) {
-        phone.value = phoneFields.eq(index).val();
-        phone.type = phoneTypes.eq(index).val();
+      _.each(_.clone(this.model.get('phone')), function(phone, index) {
+        // Filter out blank fields.
+        if (_.isEmpty(phoneFields.eq(index).val()) === false) {
+          phones.push({ 
+            value: phoneFields.eq(index).val(),
+            type: phoneTypes.eq(index).val()
+          });
+        }
       });
+      // Update model with filtered email values.
       this.model.set('phone', phones);
     },
     /**
@@ -1009,7 +1025,6 @@ MyApp = (function(Backbone, $) {
      * new button is clicked.
      */
     clearActiveButton: function(event) {
-      console.log(event);
       // Only clear buttons if the newly clicked link is for a new page 
       // (i.e. the link doesn't open in a modal). This is required since 
       // a model is viewed within the current page, thus the active 
