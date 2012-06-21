@@ -962,8 +962,15 @@ exports.orgs = function(req, res) {
   
     switch (req.params.format) {
       case 'json':
+        // 
+        orgs = _.map(orgs, function(org) {
+          return {
+            // Raw name.
+            name: org
+          };
+        });
         // Return list of org names.
-        res.send(orgs);
+        res.json(orgs, 200);
         break;
       
       default:

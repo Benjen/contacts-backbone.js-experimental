@@ -76,6 +76,8 @@ MyApp = (function(Backbone, $) {
   eventAggregator.on('load:page', function() {});
   eventAggregator.on('post-delete:contact', function() {});
   eventAggregator.on('pre-delete:contact', function() {});
+  eventAggregator.on('post-save:contact', function() {});
+  eventAggregator.on('pre-save:contact', function() {});
   eventAggregator.on('redirect:parentPage', function() {});
   eventAggregator.on('submit:contactEditForm', function() {});
   
@@ -167,6 +169,45 @@ MyApp = (function(Backbone, $) {
       phones.splice(newIndex, 0, objectToMove);
       // take out the temporary object
       phones.splice(phones.indexOf(placeholder), 1);
+    },
+    validate: function(attributes) {
+      if (typeof attributes.validationDisabled === 'undefined') {
+        console.log(attributes);
+        var errors = new Array();
+        // Validate surname.
+        if (_.isEmpty(attributes.surname) === true) {
+          errors.push({
+            type: 'form',
+            attribute: 'surname',
+            message: 'Please enter a surname.'
+          });
+        }
+        // Validate emails.
+        if (_.isEmpty(attributes.email) === false) {
+          var emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,6}$/i;
+          // Stores indexes of email values which fail validation.
+          var emailIndex = new Array();
+          _.each(attributes.email, function(email, index) {
+            if (emailRegex.test(email.value) === false) {
+              emailIndex.push(index);
+            }
+          });
+          // Create error message.
+          if (emailIndex.length > 0) {
+            errors.push({
+              type: 'form',
+              attribute: 'email',
+              index: emailIndex,
+              message: 'Please enter valid email address.'
+            });
+          }
+        }
+        
+        if (errors.length > 0) {
+//          console.log('Form validation failed.');
+          return errors;
+        }
+      }
     }
   });
   
@@ -388,7 +429,7 @@ MyApp = (function(Backbone, $) {
    */
   var EditContactFormView = Backbone.View.extend({
     initialize: function() {
-      _.bindAll(this, 'createDialog', 'render', 'saveContact', 'updateContact');
+      _.bindAll(this, 'createDialog', 'formError', 'render', 'saveContact', 'updateContact');
       // Add templates.
       this._editFormTemplate = _.template($('#edit-contact-form-tpl').html());
       this._emailFieldTemplate = _.template($('#email-field-tpl').html());
@@ -399,6 +440,8 @@ MyApp = (function(Backbone, $) {
       this.subViews = new Array();
       // Set options for new or existing contact.
       this.model = this.options.model;
+      // Bind with Model validation error event.
+      this.model.on('error', this.formError);
       this.render();
     },
     createDialog: function() {
@@ -413,12 +456,12 @@ MyApp = (function(Backbone, $) {
             text: 'Save',
             click: function(event, ui) {
               self.saveContact(event);
-              // Reload the current page. The reloading is handled by the Router.
-              eventAggregator.trigger('load:page', { uri: self.currentPageUri });
-              // Close dialog.
-              $dialog.dialog('close');
-              // Destroy current View.
-              self.close();
+//              // Reload the current page. The reloading is handled by the Router.
+//              eventAggregator.trigger('load:page', { uri: self.currentPageUri });
+//              // Close dialog.
+//              $dialog.dialog('close');
+//              // Destroy current View.
+//              self.close();
             }
           },
           {
@@ -434,6 +477,12 @@ MyApp = (function(Backbone, $) {
         }
       };
       this.$el.dialog(dialogOptions);
+    },
+    /**
+     * Deals with form validation errors
+     */
+    formError: function(model, error) {
+      console.log('formError ' + JSON.stringify(error));
     },
     /**
      * Contains code to run when closing view
@@ -469,7 +518,11 @@ MyApp = (function(Backbone, $) {
             url: '/orgs.json?terms=' + encodeURIComponent(req.term),
             type: 'GET',
             success: function(data) { 
-              res(data); 
+              var orgNames = new Array();
+              _.each(data, function(item, index) {
+                orgNames.push(item.name);
+              });
+              res(orgNames); 
             },
             error: function(jqXHR, textStatus, errorThrown) {
               alert('Something went wrong in the client side javascript.');
@@ -491,17 +544,28 @@ MyApp = (function(Backbone, $) {
       eventAggregator.trigger('submit:contactEditForm');
       // Update model with form values.
       this.updateContact();
+      // Enable validation for Model.  Done by unsetting validationDisabled attribute.
+      this.model.unset('validationDisabled');
       // Save contact to database.
-      this.model.save(this.model.attributes, {
+      this.model.save(this.model.toJSON(), {
         success: function(model, response) {
+          console.log(response);
           if (typeof response.flash !== 'undefined') {
             Messenger.trigger('new:messages', response.flash);
           }
+         // Reload the current page. The reloading is handled by the Router.
+          eventAggregator.trigger('load:page', { uri: self.currentPageUri });
+          // Close dialog.
+          self.$el.dialog('close');
+          // Destroy current View.
+          self.close();
         },
         error: function(model, response) {
+          console.log(response);
           throw error = new Error('Error occured while trying to save contact.');
-        }
-      }, { wait: true });
+        }, 
+        wait: true 
+      });
     },
     /**
      * Extract form values and update Contact.
@@ -873,15 +937,6 @@ MyApp = (function(Backbone, $) {
      *  any blank fields and updates the Model with value extracted from form.
      */
     setPhoneValues: function() {
-//      // Extract phone form values.
-//      var phones = _.clone(this.model.get('phone'));
-//      var phoneFields = this.$('.phone-field');
-//      var phoneTypes = this.$('.phone-type-select');
-//      _.each(phones, function(phone, index) {
-//        phone.value = phoneFields.eq(index).val();
-//        phone.type = phoneTypes.eq(index).val();
-//      });
-//      this.model.set('phone', phones);
       // Array to store non-empty phone field values. 
       var phones = new Array();
       // Extract email form values.
@@ -930,7 +985,71 @@ MyApp = (function(Backbone, $) {
     }
   });
 
-
+  
+  /**
+   * Model
+   */
+  var Org = Backbone.Model.extend();
+  
+  /**
+   * Collection
+   */
+  var Orgs = Backbone.Collection.extend({
+    model: Org,
+    url: '/orgs.json'
+  });
+  
+  /**
+   * 
+   */
+  var OrgItemView = Backbone.View.extend({
+    tagName: 'li',
+    initialize: function() {
+      _.bindAll(this, 'onClick', 'render');
+      this.model = this.options.model;
+      var subViews = new Array();
+    },
+    events: {
+      'click': 'onClick'
+    },
+    onClick: function(event) {
+     // Prevent default event from firing.
+      event.preventDefault();
+    },
+    onClose: function() {
+      console.log('Closing OrgItemView');
+    },
+    render: function() {
+      // TODO: set proper value for href. Currently using a dummy placeholder
+      this.$el.html('<a href="/#dummy">' + this.model.get('name') + '</a>');
+      return this;
+    }
+  });
+  
+  /**
+   * View
+   */
+  var OrgsListView = Backbone.View.extend({
+    initialize: function() {
+      _.bindAll(this, 'render');
+      this.collection = this.options.collection;
+      this.collection.on('reset', this.render);
+      // Populate collection with values from server.
+      this.collection.fetch();
+    },
+    onClose: function() {
+      console.log('Closing OrgsListView');
+    },
+    render: function() {
+      var self = this;
+      this.$el.html('<ul></ul>');
+      this.collection.each(function(org, index) {
+        var orgItemView = new OrgItemView({ model: org });
+        self.$('ul').append(orgItemView.render().el);
+      });
+      return this;
+    }
+  });
   
   /**
    * Model - Menu Item
@@ -1145,9 +1264,7 @@ MyApp = (function(Backbone, $) {
       'browse': 'browse',
       'browse/view/:id': 'viewContact',
       'browse/edit/:id': 'addContact',
-      'orgs': 'orgs',
-      'orgs/:orgName': 'orgs',
-      'orgs/:orgName/:id': 'orgs',
+      'orgs': 'viewOrgs',
       'contact/add': 'addContact',
       'contact/edit/:id': 'addContact',
 //      'contact/view/:id': 'viewContact',
@@ -1156,7 +1273,7 @@ MyApp = (function(Backbone, $) {
     },
     initialize: function(options) {
       this.pageManager = options.pageManager;
-      _.bindAll(this, 'addContact', 'browse', 'gotoPage', 'redirectToParentPage', 'viewContact');
+      _.bindAll(this, 'addContact', 'browse', 'gotoPage', 'viewOrgs', 'redirectToParentPage', 'viewContact');
       // Bind events.
       eventAggregator.bind('redirect:parentPage', this.redirectToParentPage);
       eventAggregator.bind('click:menuButton', this.gotoPage);
@@ -1170,7 +1287,10 @@ MyApp = (function(Backbone, $) {
       var model;
       if (typeof id !== 'undefined') {
         // Get Model data from server if is an existing contact.
-        model = new Contact({ _id: id });
+        model = new Contact({ 
+          _id: id, 
+          validationDisabled: true
+        });
         model.parse = function(response) {
           return response.data;
         };
@@ -1185,7 +1305,9 @@ MyApp = (function(Backbone, $) {
       }
       else {
         // Create new Model.
-        model = new Contact();
+        model = new Contact({ 
+          validationDisabled: true 
+        });
         // Display contact edit form. Note that this.appView.showView() 
         // method is not used since this view contains its own method 
         // for closing itself.
@@ -1197,11 +1319,15 @@ MyApp = (function(Backbone, $) {
     },
     browse: function() {
       this.pageManager.setCurrentUri(Backbone.history.getFragment());
-      var listContactsView = new ListContactsView({ collection: new Contacts() });
+      var contacts = new Contacts();
+      var listContactsView = new ListContactsView({ collection: contacts });
       this.pageManager.showView(listContactsView);
     },
     viewContact: function(id) {
-      var model = new Contact({ _id: id });
+      var model = new Contact({ 
+        _id: id,
+        validationDisabled: true
+      });
       this.pageManager.setCurrentUri(Backbone.history.getFragment());
       var displayContactView = new DisplayContactView({ model: model, currentPageUri: '/#' + this.pageManager.getCurrentUri() });
       this.pageManager.showView(displayContactView);
@@ -1227,14 +1353,11 @@ MyApp = (function(Backbone, $) {
     home: function() {
       this.$content.html('Home');
     },
-    orgs: function(orgName, id) {
+    viewOrgs: function(orgName, id) {
       this.$content.html('Orgs');
-      if (typeof orgName !== 'undefined') {
-        this.$content.html(' ' + orgName);
-      }
-      if (typeof id !== 'undefined') {
-        this.$content.html(' ' + id);
-      }
+      var orgs = new Orgs();
+      var orgsListView = new OrgsListView({ collection: orgs }); 
+      this.pageManager.showView(orgsListView);
     },
     /**
      * Redirect to parent page
