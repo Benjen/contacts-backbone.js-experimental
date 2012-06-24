@@ -1000,21 +1000,29 @@ exports.orgs = function(req, res) {
 
 exports.orgByName = function(req, res) {
   var Contact = mongoose.model('Contact');
-  var orgName = req.params.orgName.replace(/_/g, ' ');
+  var orgName = decodeURIComponent(req.params.orgName);
   var query = Contact.find({});
   query.where('org', orgName);
   query.asc('surname', 'given_name');
   query.exec(function(err, results) {
-    // Set args used by breadcrumbTrail helper.
-    req.Namecards.breadcrumbTrail = { 
-        path: url.parse(req.url).path,
-        title: orgName
-      };
-    res.render('orgByName', {
-      locals: {
-        title: orgName,
-        data: results
-      }
-    });
+    switch (req.params.format) {
+      case 'json':
+        // Return results object in JSON format.
+        res.json(results, 200);
+        break;
+      default:
+        // Set args used by breadcrumbTrail helper.
+        req.Namecards.breadcrumbTrail = { 
+            path: url.parse(req.url).path,
+            title: orgName
+          };
+        res.render('orgByName', {
+          locals: {
+            title: orgName,
+            data: results
+          }
+        });
+        break;
+    }
   });
 };

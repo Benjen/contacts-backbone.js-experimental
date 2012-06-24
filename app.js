@@ -69,7 +69,7 @@ app.post('/contact', namecards.createNamespace(), routes.postContact);
 
 
 app.get('/orgs.:format?', namecards.createNamespace(), routes.orgs);
-app.get('/orgs/:orgName', namecards.createNamespace(), routes.orgByName);
+app.get('/orgs.:format?/:orgName', namecards.createNamespace(), routes.orgByName);
 app.get('/orgs/:orgName/:id', namecards.createNamespace(), routes.viewContact);
 
 app.listen(3000);

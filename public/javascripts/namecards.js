@@ -549,7 +549,7 @@ MyApp = (function(Backbone, $) {
       // Save contact to database.
       this.model.save(this.model.toJSON(), {
         success: function(model, response) {
-          console.log(response);
+          console.log('Save succeeded.');
           if (typeof response.flash !== 'undefined') {
             Messenger.trigger('new:messages', response.flash);
           }
@@ -561,7 +561,7 @@ MyApp = (function(Backbone, $) {
           self.close();
         },
         error: function(model, response) {
-          console.log(response);
+          console.log('Save failed.');
           throw error = new Error('Error occured while trying to save contact.');
         }, 
         wait: true 
@@ -1013,8 +1013,21 @@ MyApp = (function(Backbone, $) {
       'click': 'onClick'
     },
     onClick: function(event) {
-     // Prevent default event from firing.
+      // Prevent default event from firing.
       event.preventDefault();
+      if (typeof this.listContactsByOrgView === 'undefined') {
+        // Create list of contacts.
+        var contacts = new ContactsByOrg({ url: '/orgs.json/' + encodeURIComponent(this.model.get('name')) });
+        this.listContactsByOrgView = new ListContactsByOrgView({ collection: contacts });
+        // Append list of contacts view to this view.
+        this.$el.append(this.listContactsByOrgView.render().el);
+      }
+      else {
+        // Close View.
+        this.listContactsByOrgView.close();
+        // Destroy property this.listContactsByOrgView.
+        delete this.listContactsByOrgView;
+      }
     },
     onClose: function() {
       console.log('Closing OrgItemView');
@@ -1027,7 +1040,7 @@ MyApp = (function(Backbone, $) {
   });
   
   /**
-   * View
+   * View - List of organizations
    */
   var OrgsListView = Backbone.View.extend({
     initialize: function() {
@@ -1038,6 +1051,7 @@ MyApp = (function(Backbone, $) {
       this.collection.fetch();
     },
     onClose: function() {
+      this.collection.off('reset', this.render);
       console.log('Closing OrgsListView');
     },
     render: function() {
@@ -1046,6 +1060,42 @@ MyApp = (function(Backbone, $) {
       this.collection.each(function(org, index) {
         var orgItemView = new OrgItemView({ model: org });
         self.$('ul').append(orgItemView.render().el);
+      });
+      return this;
+    }
+  });
+
+  /**
+   * Collection - contacts by org
+   */
+  var ContactsByOrg = Backbone.Collection.extend({
+    model: Contact,
+    initialize: function(options) {
+      this.url = options.url;
+    }
+  });
+  
+  /**
+   * View - Contacts by org
+   */
+  var ListContactsByOrgView = Backbone.View.extend({
+    id: 'contacts-by-name',
+    initialize: function() {
+      _.bindAll(this, 'render');
+      this.collection = this.options.collection;
+      this.collection.on('reset', this.render);
+      this.collection.fetch();
+    },
+    onClose: function() {
+      // Unbind other objects.
+      this.collection.off('reset', this.render);
+      console.log('closing ListContactsByOrgView');
+    },
+    render: function() {
+      var self = this;
+      this.$el.html('');
+      this.collection.each(function(contact, index) {
+        self.$el.append('<div>' + contact.get('surname') + ' ' + contact.get('given_name') + '</div>');
       });
       return this;
     }
@@ -1255,6 +1305,55 @@ MyApp = (function(Backbone, $) {
     },
     purgeMessages: function() {}
   });
+ 
+  
+  /**
+   * View - Default View
+   * 
+   * Used as a placeholder and for testing purposes.  Can remove 
+   * from production system.
+   */
+  var DefaultView = Backbone.View.extend({
+    initialize: function() {
+      _.bindAll(this, 'render', 'saveContact', 'validationError');
+      this.model = this.options.model;
+      this.model.on('error', this.validationError);
+      this.render();
+    },
+    events: {
+      'click button': 'saveContact'
+    },
+    render: function() {
+      this.$el.html('<h3>Save, Set callback</h3><textarea id="callback" rows="5" cols="60"></textarea>');
+      this.$el.append('<h3>Validation error</h3><textarea id="error" rows="5" cols="60"></textarea>');
+      this.$el.append('<button>Save</button>');
+      return this;
+    },
+    saveContact: function() {
+      this.model.set(
+        'email', 
+        [
+          { value: 'tim@tim.com' }, 
+          { value: '11111111' }
+        ], 
+        function(model, error) {
+          this.$('#callback').val('Set error: ' + JSON.stringify(response));
+        }
+      );
+      this.model.unset('validationDisabled');
+      this.model.save({}, {
+        success: function(model, response) {
+          this.$('#callback').val('Save Success: ' + JSON.stringify(response));
+        },
+        error: function(model, response) {
+          this.$('#callback').val('Save Error: ' + JSON.stringify(response));
+        }
+      });
+    },
+    validationError: function(model, error) {
+      this.$('#error').val(JSON.stringify(error));
+    }
+  });
   
   /**
    * Router - Page routes
@@ -1333,7 +1432,23 @@ MyApp = (function(Backbone, $) {
       this.pageManager.showView(displayContactView);
     },
     defaultPage: function(path) {
-      this.$content.html('Default');
+      var contact = new Contact({
+        surname: 'Franklin',
+        given_name: 'Johnathon',
+        org: '',
+        phone: new Array(),
+        email: new Array(),
+        address: new Array({
+          street: '',
+          district: '',
+          city: '',
+          country: '',
+          postcode: ''
+        }),
+        validationDisabled: true
+      });
+      var defaultView = new DefaultView({ model: contact });
+      this.pageManager.showView(defaultView);
     },
     /**
      * Ensures that URL hash will reload
