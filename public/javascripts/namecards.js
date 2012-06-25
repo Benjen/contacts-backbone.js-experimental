@@ -231,7 +231,6 @@ MyApp = (function(Backbone, $) {
       _.bindAll(this, 'removeContact', 'render');
       // Add templates.
       this._template = _.template($('#list-contact-tpl').html());
-      this.render();
     },
     events: {
       'click button': 'removeContact'
@@ -241,7 +240,7 @@ MyApp = (function(Backbone, $) {
      * 
      * Makes use of modal dialog to confirm deletion.
      */
-    removeContact: function() {
+    removeContact: function(event) {
       var self = this;
       // Initialize confirm delete dialog.
       var $dialog = $('<div></div');
@@ -299,7 +298,7 @@ MyApp = (function(Backbone, $) {
       $dialog.dialog(dialogOptions);
     },
     render: function() {
-      this.$el.html($(this._template({ model: this.model})).html());
+      this.$el.html($(this._template({ uriRoot: this.options.uriRoot, model: this.model})).html());
       return this;
     }
   });
@@ -321,7 +320,7 @@ MyApp = (function(Backbone, $) {
       this.$el.html('<ul></ul>');
       this.collection.each(function(model, index) {
         // render list items.
-        var listContactsItemView = new ListContactsItemView({ model: model });
+        var listContactsItemView = new ListContactsItemView({ uriRoot: '/#browse', model: model });
         self.$('ul').append(listContactsItemView.render().el);
       });
       this.$el.fadeIn(500);
@@ -1007,10 +1006,11 @@ MyApp = (function(Backbone, $) {
     initialize: function() {
       _.bindAll(this, 'onClick', 'render');
       this.model = this.options.model;
-      var subViews = new Array();
+      // Create array for tracking subviews.
+      /*var subViews = new Array();*/
     },
     events: {
-      'click': 'onClick'
+      'click a.test': 'onClick'
     },
     onClick: function(event) {
       // Prevent default event from firing.
@@ -1034,7 +1034,7 @@ MyApp = (function(Backbone, $) {
     },
     render: function() {
       // TODO: set proper value for href. Currently using a dummy placeholder
-      this.$el.html('<a href="/#dummy">' + this.model.get('name') + '</a>');
+      this.$el.html('<a class="test" href="/#dummy">' + this.model.get('name') + '</a>');
       return this;
     }
   });
@@ -1082,6 +1082,7 @@ MyApp = (function(Backbone, $) {
     id: 'contacts-by-name',
     initialize: function() {
       _.bindAll(this, 'render');
+      // Get collection.
       this.collection = this.options.collection;
       this.collection.on('reset', this.render);
       this.collection.fetch();
@@ -1095,7 +1096,9 @@ MyApp = (function(Backbone, $) {
       var self = this;
       this.$el.html('');
       this.collection.each(function(contact, index) {
-        self.$el.append('<div>' + contact.get('surname') + ' ' + contact.get('given_name') + '</div>');
+        var uriRoot = '/#orgs/' + encodeURIComponent(contact.get('org'));
+        var listContactsItemView = new ListContactsItemView({ uriRoot: uriRoot, model: contact });
+        self.$el.append(listContactsItemView.render().el);
       });
       return this;
     }
@@ -1364,6 +1367,8 @@ MyApp = (function(Backbone, $) {
       'browse/view/:id': 'viewContact',
       'browse/edit/:id': 'addContact',
       'orgs': 'viewOrgs',
+      'orgs/:orgName/view/:id': 'viewContact',
+      'orgs/:orgName/edit/:id': 'addContact',
       'contact/add': 'addContact',
       'contact/edit/:id': 'addContact',
 //      'contact/view/:id': 'viewContact',
@@ -1423,6 +1428,9 @@ MyApp = (function(Backbone, $) {
       this.pageManager.showView(listContactsView);
     },
     viewContact: function(id) {
+      // Set id to the value when more than one argument present.  This occurs in the case of routes such as '/#orgs/:orgName/view/:id', where id is the second argument.
+      id = _.last(arguments);
+      
       var model = new Contact({ 
         _id: id,
         validationDisabled: true
