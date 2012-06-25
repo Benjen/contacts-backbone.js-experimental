@@ -418,7 +418,8 @@ MyApp = (function(Backbone, $) {
       this.$el
         .hide()
         .html(this.template({ contact: this.model.attributes }))
-        .fadeIn(500);
+        .fadeIn(500)
+        .dialog({ modal: true });
       return this;
     }
   });
