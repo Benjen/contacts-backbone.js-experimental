@@ -102,10 +102,16 @@ MyApp = (function(Backbone, $) {
       // Add view to page. 
       $('#content').html(this.currentView.el);
     };
-    this.getCurrentUri = function() {
+    /**
+     * Get current uri
+     */
+    this.getCurrentPageUri = function() {
       return this.currentUri;
     };
-    this.setCurrentUri = function(uri) {
+    /**
+     * Set current uri
+     */
+    this.setCurrentPageUri = function(uri) {
       this.currentUri = uri;
     };
   };
@@ -172,7 +178,6 @@ MyApp = (function(Backbone, $) {
     },
     validate: function(attributes) {
       if (typeof attributes.validationDisabled === 'undefined') {
-        console.log(attributes);
         var errors = new Array();
         // Validate surname.
         if (_.isEmpty(attributes.surname) === true) {
@@ -204,7 +209,7 @@ MyApp = (function(Backbone, $) {
         }
         
         if (errors.length > 0) {
-//          console.log('Form validation failed.');
+          alert('validation error');
           return errors;
         }
       }
@@ -227,13 +232,19 @@ MyApp = (function(Backbone, $) {
    */
   var ListContactsItemView = Backbone.View.extend({
     tagName: 'li',
-    initialize: function() {
-      _.bindAll(this, 'removeContact', 'render');
+    initialize: function(options) {
+      _.bindAll(this, 'onClose', 'removeContact', 'render', 'viewContact');
       // Add templates.
       this._template = _.template($('#list-contact-tpl').html());
+      this.model = options.model;
+      this.model.on('destroy', this.removeContact);
     },
     events: {
-      'click button': 'removeContact'
+      'click': 'viewContact'
+    },
+    onClose: function() {
+      // Remove bound callbacks.
+      this.model.off('destroy', this.removeContact);
     },
     /**
      * Remove contact
@@ -241,65 +252,16 @@ MyApp = (function(Backbone, $) {
      * Makes use of modal dialog to confirm deletion.
      */
     removeContact: function(event) {
-      var self = this;
-      // Initialize confirm delete dialog.
-      var $dialog = $('<div></div');
-      $dialog.html('Are you sure you wish to delete this contact?');
-      var dialogOptions = {
-        modal: true,
-        autoOpen: true,
-        buttons: [
-          {
-            text: 'Yes',
-            click: function() {
-              // Delete contact.
-              eventAggregator.trigger('pre-delete:contact');
-              self.model.destroy({
-                success: function(model, response) {
-                  // Close and remove dialog.
-                  $dialog.dialog('close');
-                  // Display any messages.
-                  if (typeof response.flash !== 'undefined') {
-                    Messenger.trigger('new:messages', response.flash);
-                  }
-                  // Remove view. This results in contact being removed from browse list.
-                  self.$el.fadeOut('slow');
-                  self.close();
-                },
-                error: function(model, response) {
-                  console.log(response);
-                  // Close and remove dialog.
-                  $dialog.dialog('close');
-                  // Display any messages.
-                  if (typeof response.flash !== 'undefined') {
-                    Messenger.trigger('new:messages', response.flash);
-                  }
-                },
-                // Wait for server to confirm delete before running callbacks.
-                wait: true
-              });
-            }
-          },
-          {
-            text: 'No',
-            click: function() {
-              // Close dialog.
-              $dialog.dialog('close');
-            }
-          }
-        ],
-        close: function(event, ui) {
-          $dialog.dialog('destroy');
-          // Remove element.
-          $dialog.remove();
-        }
-      };
-      // Create confirm delete dialog.
-      $dialog.dialog(dialogOptions);
+      this.close();
     },
     render: function() {
-      this.$el.html($(this._template({ uriRoot: this.options.uriRoot, model: this.model})).html());
+      this.$el.html($(this._template({ uriRoot: this.options.uriRoot, model: this.model})));
       return this;
+    },
+    viewContact: function(event) {
+      // Prevent submit event trigger from firing.
+      event.preventDefault();
+      DialogManager.trigger('showDialog:view', { model: this.model });
     }
   });
   
@@ -310,10 +272,12 @@ MyApp = (function(Backbone, $) {
     initialize: function() {
       _.bindAll(this, 'render');
       this.collection = this.options.collection;
-      this.collection.bind('reset', this.render);
+      this.collection.on('reset', this.render);
       this.collection.fetch();
     },
-    onClose: function() {},
+    onClose: function() {
+      this.collection.off('reset', this.render);
+    },
     render: function() {
       var self = this;
       this.$el.hide();
@@ -328,6 +292,7 @@ MyApp = (function(Backbone, $) {
     }
   });
 
+  
   /** 
    * View - Display single contact 
    */
@@ -348,78 +313,153 @@ MyApp = (function(Backbone, $) {
       this.model.parse = function(response) {
         return response.data;
       };
-      this.model.bind('change', this.render);
+      this.model.on('change', this.render);
       this.model.fetch();
     },
     deleteContact: function() {
       var self = this;
-      // Initialize confirm delete dialog.
-      var $dialog = $('<div></div');
-      $dialog.html('Are you sure you wish to delete this contact?');
-      var dialogOptions = {
-        modal: true,
-        autoOpen: true,
-        buttons: [
-          {
-            text: 'Yes',
-            click: function() {
-              // Delete contact.
-              eventAggregator.trigger('pre-delete:contact');
-              self.model.destroy({
-                success: function(model, response) {
-                  // Close and remove dialog.
-                  $dialog.dialog('close');
-                  // Display any messages.
-                  if (typeof response.flash !== 'undefined') {
-                    Messenger.trigger('new:messages', response.flash);
-                  }
-                  // Remove view. This results in contact being removed from browse list.
-                  self.$el.fadeOut('slow');
-                  // return to parent page.
-                  console.log(self.currentPageUri);
-                  eventAggregator.trigger('redirect:parentPage', self.currentPageUri);
-                },
-                error: function(model, response) {
-                  console.log(response);
-                  // Close and remove dialog.
-                  $dialog.dialog('close');
-                  // Display any messages.
-                  if (typeof response.flash !== 'undefined') {
-                    Messenger.trigger('new:messages', response.flash);
-                  }
-                },
-                // Wait for server to confirm delete before running callbacks.
-                wait: true
-              });
-            }
-          },
-          {
-            text: 'No',
-            click: function() {
-              // Close dialog.
-              $dialog.dialog('close');
-            }
+      // Switch to delete confirmation dialog.
+      this.$el.html('Are you sure you wish to delete this contact?');
+      this.$el.dialog('option', 'title', 'Confirm delete');
+      this.$el.dialog('option', 'buttons', [
+        { 
+          text: 'OK',
+          click: function(event, ui) {
+            // Delete contact.
+            eventAggregator.trigger('pre-delete:contact');
+            self.model.destroy({
+              success: function(model, response) {
+                // Close and remove dialog.
+                self.$el.dialog('close');
+                // Display any messages.
+                if (typeof response.flash !== 'undefined') {
+                  Messenger.trigger('new:messages', response.flash);
+                }
+                // Remove view. This results in contact being removed from browse list.
+                self.$el.fadeOut('slow');
+                // return to parent page.
+                eventAggregator.trigger('redirect:parentPage', self.currentPageUri);
+              },
+              error: function(model, response) {
+                console.log(response);
+                // Close and remove dialog.
+                self.$el.dialog('close');
+                // Display any messages.
+                if (typeof response.flash !== 'undefined') {
+                  Messenger.trigger('new:messages', response.flash);
+                }
+              },
+              // Wait for server to confirm delete before running callbacks.
+              wait: true
+            });
           }
-        ],
-        close: function(event, ui) {
-          $dialog.dialog('destroy');
-          // Remove element.
-          $dialog.remove();
+        },
+        {
+          text: 'Cancel',
+          click: function(event, ui) {
+            // Switch to view contact dialog.
+            self.render();
+          }
         }
-      };
-      // Create confirm delete dialog.
-      $dialog.dialog(dialogOptions);
+      ]);
+      // Initialize confirm delete dialog.
+//      var $dialog = $('<div></div');
+//      $dialog.html('Are you sure you wish to delete this contact?');
+//      var dialogOptions = {
+//        modal: true,
+//        autoOpen: true,
+//        buttons: [
+//          {
+//            text: 'Yes',
+//            click: function() {
+//              // Delete contact.
+//              eventAggregator.trigger('pre-delete:contact');
+//              self.model.destroy({
+//                success: function(model, response) {
+//                  // Close and remove dialog.
+//                  $dialog.dialog('close');
+//                  // Display any messages.
+//                  if (typeof response.flash !== 'undefined') {
+//                    Messenger.trigger('new:messages', response.flash);
+//                  }
+//                  // Remove view. This results in contact being removed from browse list.
+//                  self.$el.fadeOut('slow');
+//                  // return to parent page.
+//                  console.log(self.currentPageUri);
+//                  eventAggregator.trigger('redirect:parentPage', self.currentPageUri);
+//                },
+//                error: function(model, response) {
+//                  console.log(response);
+//                  // Close and remove dialog.
+//                  $dialog.dialog('close');
+//                  // Display any messages.
+//                  if (typeof response.flash !== 'undefined') {
+//                    Messenger.trigger('new:messages', response.flash);
+//                  }
+//                },
+//                // Wait for server to confirm delete before running callbacks.
+//                wait: true
+//              });
+//            }
+//          },
+//          {
+//            text: 'No',
+//            click: function() {
+//              // Close dialog.
+//              $dialog.dialog('close');
+//            }
+//          }
+//        ],
+//        close: function(event, ui) {
+//          $dialog.dialog('destroy');
+//          // Remove element.
+//          $dialog.remove();
+//        }
+//      };
+//      // Create confirm delete dialog.
+//      $dialog.dialog(dialogOptions);
     },
     editContact: function() {
       eventAggregator.trigger('load:page', { uri: '/#browse/edit/' + this.model.id });
     },
-    onClose: function() {},
+    onClose: function() {
+      console.log('Closing DisplayContactView');
+      // Unbind model events.
+      this.model.off('change', this.render);
+    },
     render: function() {
+      var self = this;
       this.$el
         .hide()
         .html(this.template({ contact: this.model.attributes }))
-        .fadeIn(500)
-        .dialog({ modal: true });
+        .dialog({ 
+          title: this.model.get('given_name') + ' ' + this.model.get('surname'),
+          modal: true,
+          buttons: [
+            {
+              text: 'Edit',
+              click: function(event, ui) {
+                self.editContact();
+              }
+            },
+            {
+              text: 'Delete',
+              click: function(event, ui) {
+                self.deleteContact();
+              }
+            },
+            {
+              text: 'Close',
+              click: function(event, ui) {
+                self.$el.dialog('close');
+              }
+            }
+          ],
+          close: function(event, ui) {
+            self.$el.dialog('destroy');
+            self.close();
+          }
+        });
       return this;
     }
   });
@@ -496,6 +536,8 @@ MyApp = (function(Backbone, $) {
           view.onClose();
         }
       });
+      // Unbind events.
+      this.model.off('error', this.formError);
     },
     render: function() {
       this.$el
@@ -603,7 +645,7 @@ MyApp = (function(Backbone, $) {
     initialize: function() {
       _.bindAll(this, 'addSortableFields', 'appendNewField', 'getFieldsHtml', 'removeField', 'render', 'setEmailValues');
       // Bind to event aggregator.
-      eventAggregator.bind('submit:contactEditForm', this.setEmailValues);
+      eventAggregator.on('submit:contactEditForm', this.setEmailValues);
       // Add templates.
       this._emailFieldTemplate = _.template($('#email-field-tpl').html());
       this._emailFieldsetTemplate = _.template($('#email-fieldset-tpl').html());
@@ -652,12 +694,13 @@ MyApp = (function(Backbone, $) {
       var newEmailField = { value: '' };
       // Clone Model's email attribute array. 
       var emails = _.clone(this.model.get('email'));
+      console.log(emails);
       emails.push(newEmailField);
       // Add updated array to Model.
       this.model.set({ email: emails });
       // Append new field to UI.
       var $emailFields = this.$('#email-fields');
-      // New index will be one less than the length of the email array in Model.  
+      // New index will be one less than the length of the now updated email array in Model.  
       var newIndex = this.model.get('email').length - 1;
       $renderedNewEmailField = $(this._emailFieldTemplate({ 
         index: newIndex, 
@@ -682,6 +725,8 @@ MyApp = (function(Backbone, $) {
      * Used for unbinding Model and Collection events.
      */
     onClose: function() {
+      console.log('closing EmailFieldsetView');
+      eventAggregator.off('submit:contactEditForm', this.setEmailValues);
     },
     /**
      * Remove selected field from Model and UI
@@ -799,7 +844,7 @@ MyApp = (function(Backbone, $) {
     initialize: function() {
       _.bindAll(this, 'addSortableFields', 'appendNewField', 'getFieldsHtml', 'removeField', 'render', 'setPhoneValues');
       // Bind to event aggregator.
-      eventAggregator.bind('submit:contactEditForm', this.setPhoneValues);
+      eventAggregator.on('submit:contactEditForm', this.setPhoneValues);
       // Add templates.
       this._phoneFieldTemplate = _.template($('#phone-field-tpl').html());
       this._phoneFieldsetTemplate = _.template($('#phone-fieldset-tpl').html());
@@ -855,7 +900,7 @@ MyApp = (function(Backbone, $) {
       this.model.set({ phone: phones });
       // Append new field to UI.
       var $phoneFields = this.$('#phone-fields');
-      // New index will be one less than the length of the phone array in Model.  
+      // New index will be one less than the length of the newly updated phone array in Model.  
       var newIndex = this.model.get('phone').length - 1;
       $renderedNewPhoneField = $(this._phoneFieldTemplate({ 
         index: newIndex, 
@@ -882,6 +927,9 @@ MyApp = (function(Backbone, $) {
      * Used for unbinding Model and Collection events.
      */
     onClose: function() {
+      console.log('closing PhoneFieldsetView');
+      // Unbind to event aggregator.
+      eventAggregator.off('submit:contactEditForm', this.setPhoneValues);
     },
     /**
      * Remove selected field from Model and UI
@@ -1185,7 +1233,7 @@ MyApp = (function(Backbone, $) {
       _.bindAll(this, 'render', 'clearActiveButton');
       eventAggregator.bind('click:menuButton', this.clearActiveButton);
       this.collection = this.options.collection;
-      this.collection.bind('refresh', this.render);
+      this.collection.on('refresh', this.render);
       this.render();
       // Set menu button corresponding to loaded page to active state.
       var uri = window.location.pathname + window.location.hash;
@@ -1210,6 +1258,9 @@ MyApp = (function(Backbone, $) {
           }
         });
       }
+    },
+    onClose: function() {
+      this.collection.off('refresh', this.render);
     },
     render: function() {
       this.$el.html('<ul></ul>');
@@ -1278,7 +1329,7 @@ MyApp = (function(Backbone, $) {
       this.render();
       // Bind collection to view.
       this.collection = new Messages();
-      this.collection.bind('add', this.appendMessage);
+      this.collection.on('add', this.appendMessage);
     },
     render: function() {
       this.$el.html('<ul></ul>');
@@ -1307,9 +1358,320 @@ MyApp = (function(Backbone, $) {
         self.appendMessage(message);
       });
     },
+    onClose: function() {
+      this.collection.off('add', this.appendMessage);
+    },
     purgeMessages: function() {}
   });
  
+  
+  /**
+   * Dialog Manager
+   * 
+   * This object is used to coordinate the displaying of modal dialogs. Is 
+   * also used to pass the Contact model between dialogs. 
+   */
+  var DialogManager = _.extend({}, Backbone.Events);
+  DialogManager.on('showDialog:view', function(event) {
+    console.log('showDialog:view');
+    var viewContactDialogView = new ViewContactDialogView({ model: event.model });
+  });
+  DialogManager.on('showDialog:edit', function(event) {
+    console.log('showDialog:edit');
+    var editContactDialogView = new EditContactDialogView({ model: event.model });
+  });
+  DialogManager.on('showDialog:delete', function(event) {
+    console.log('showDialog:delete');
+    var deleteContactConfirmationDialog = new DeleteContactConfirmationDialog({ model: event.model });
+  });
+  
+  /**
+   * View - Contact Delete Confirmation Dialog
+   */
+  var DeleteContactConfirmationDialog = Backbone.View.extend({
+    id: 'delete-confirmation-dialog',
+    initialize: function(options) {
+      _.bindAll(this, 'onClose', 'render');
+      this.model = options.model;
+      this.render();
+    },
+    onClose: function() {
+      console.log('Closing DeleteContactConfirmationDialog');
+    },
+    render: function() {
+      var self = this;
+      // Initialize confirm delete dialog.
+      this.$el.html('Are you sure you wish to delete this contact?');
+      this.$el.dialog({
+        title: 'Delete',
+        modal: true,
+        autoOpen: true,
+        buttons: [
+          {
+            text: 'Yes',
+            click: function() {
+              // Delete contact.
+              eventAggregator.trigger('pre-delete:contact');
+              self.model.destroy({
+                success: function(model, response) {
+                  // Close and remove dialog.
+                  self.$el.dialog('close');
+                  // Display any messages.
+                  if (typeof response.flash !== 'undefined') {
+                    Messenger.trigger('new:messages', response.flash);
+                  }
+                  // Remove view. This results in contact being removed from browse list.
+                  self.$el.fadeOut('slow');
+                  self.close();
+                },
+                error: function(model, response) {
+                  console.log(response);
+                  // Display any messages.
+                  if (typeof response.flash !== 'undefined') {
+                    Messenger.trigger('new:messages', response.flash);
+                  }
+                  // Close and remove dialog.
+                  self.$el.dialog('close');
+                },
+                // Wait for server to confirm delete before running callbacks.
+                wait: true
+              });
+            }
+          },
+          {
+            text: 'No',
+            click: function() {
+              // Return to view contact dialog.
+              DialogManager.trigger('showDialog:view', { model: self.model });
+              // Close dialog.
+              self.$el.dialog('close');
+            }
+          }
+        ],
+        close: function(event, ui) {
+          self.$el.dialog('destroy');
+          // Remove element.
+          self.close();
+        }
+      });
+      return this;
+    }
+  });
+  
+  /**
+   * View - Edit Contact Dialog
+   */
+  var EditContactDialogView = Backbone.View.extend({
+    id: 'edit-contact-dialog',
+    initialize: function(options) {
+      _.bindAll(this, 'onClose', 'render', 'saveContact');
+      // Add templates.
+      this._editFormTemplate = _.template($('#edit-contact-form-tpl').html());
+      this._emailFieldTemplate = _.template($('#email-field-tpl').html());
+      this._phoneFieldTemplate = _.template($('#phone-field-tpl').html());
+      // Create array to hold references to all subviews. 
+      this.subViews = new Array();
+      // Set options for new or existing contact.
+      this.model = this.options.model;
+      // Prevent Model validation on this model.  This can be removed 
+      // later when validation is required (e.g. when one is about to save 
+      // the model). This prevents Model validation happening on model 
+      // 'change' events, which can be problematic when adding new blank 
+      // form fields, etc.
+      this.model.set('validationDisabled', true);
+      // Bind with Model validation error event.
+      this.model.on('error', this.formError);
+      this.render();
+    },
+    formError: function(model, error) {
+      console.log(error);
+    },
+    onClose: function() {
+      console.log('closing EditContactDialogView');
+      // Unbind with Model validation error event.
+      this.model.off('error', this.formError);
+      // Close subviews.
+      _.each(this.subViews, function(view, index) {
+        view.close();
+      });
+    },
+    render: function() {
+      var self = this;
+      this.$el.html(this._editFormTemplate({ contact: this.model.attributes }));
+      // Attach email fieldset subview.
+      var emailFieldsetView = new EmailFieldsetView({ model: this.model });
+      // Add to subviews array. Useful if need to process subviews later (e.g. if need to run onClose() methods on subviews).
+      this.subViews.push(emailFieldsetView);
+      this.$('fieldset.email').append(emailFieldsetView.render().el);
+      // Attach phone fieldset.
+      var phoneFieldsetView = new PhoneFieldsetView({ model: this.model });
+      // Add to subviews array. Useful if need to process subviews later (e.g. if need to run onClose() methods on subviews).
+      this.subViews.push(phoneFieldsetView);
+      this.$('fieldset.phone').append(phoneFieldsetView.render().el);
+      // Add jQuery UI autocomplete to org field.
+      this.$('#org-field').autocomplete({
+        source: function(req, res) {
+          $.ajax({
+            url: '/orgs.json?terms=' + encodeURIComponent(req.term),
+            type: 'GET',
+            success: function(data) { 
+              var orgNames = new Array();
+              _.each(data, function(item, index) {
+                orgNames.push(item.name);
+              });
+              res(orgNames); 
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+              alert('Something went wrong in the client side javascript.');
+            },
+            dataType: 'json',
+            cache: false
+          });
+        }
+      });
+      this.$el.dialog({
+        title: 'Edit',
+        autoOpen: true,
+        modal: true,
+        width: 400,
+        buttons: [
+          {
+            text: 'Save',
+            click: function(event, ui) {
+              self.saveContact(event);
+            }
+          },
+          {
+            text: 'Close',
+            click: function(event, ui) {
+              // Return to view contact dialog.
+              DialogManager.trigger('showDialog:view', { model: self.model });
+              // Close dialog.
+              self.$el.dialog('close');
+            }
+          }
+        ],
+        close: function(event, ui) {
+          // Destroy dialog.
+          self.$el.dialog('destroy');
+          // Close this View.
+          self.close();
+        }
+      });
+      return this;
+    },
+    saveContact: function() {
+      var self = this;
+      // Prevent submit event trigger from firing.
+//      event.preventDefault();
+      // Trigger form submit event so other subviews (e.g. email and phone) can update
+      // model based on their content.
+      eventAggregator.trigger('submit:contactEditForm');
+      // Update model with form values.
+      this.updateContact();
+      // Enable validation for Model.  Done by unsetting validationDisabled attribute.
+      this.model.unset('validationDisabled');
+      // Save contact to database.
+      this.model.save(this.model.toJSON(), {
+        success: function(model, response) {
+          console.log('Save succeeded.');
+          if (typeof response.flash !== 'undefined') {
+            Messenger.trigger('new:messages', response.flash);
+          }
+          DialogManager.trigger('showDialog:view', { model: model });
+          // Close dialog.
+          self.$el.dialog('close');
+        },
+        error: function(model, response) {
+          console.log('Save failed.');
+          throw error = new Error('Error occured while trying to save contact.');
+        }, 
+        wait: true 
+      });
+    },
+    /**
+     * Extract form values and update Contact.
+     */
+    updateContact: function() {
+      this.model.set('surname', this.$('#surname-field').val());
+      this.model.set('given_name', this.$('#given-name-field').val());
+      this.model.set('org', this.$('#org-field').val());
+      // Extract address form values.
+      var address = new Array({
+        street: this.$('input[name="street"]').val(),
+        district: this.$('input[name="district"]').val(),
+        city: this.$('input[name="city"]').val(),
+        country: this.$('input[name="country"]').val(),
+        postcode: this.$('input[name="postcode"]').val()
+      });
+      this.model.set('address', address);
+    }
+  });
+  
+  /**
+   * View - View Contact Dialog
+   */
+  var ViewContactDialogView = Backbone.View.extend({
+    id: 'view-contact-dialog',
+    initialize: function(options) {
+      _.bindAll(this, 'deleteContact', 'editContact', 'onClose', 'render');
+      this._template = _.template($('#display-contact-tpl').html());
+      this.model = options.model;
+      this.model.on('change', this.render);
+      this.render();
+    },
+    deleteContact: function() {
+      // Show delete confirmation dialog.
+      DialogManager.trigger('showDialog:delete', { model: this.model });
+      // Close this View.
+      this.$el.dialog('destroy');
+      this.close();
+    },
+    editContact: function() {
+      // Show edit contact dialog.
+      DialogManager.trigger('showDialog:edit', { model: this.model });
+      // Close this View.
+      this.$el.dialog('close');
+    },
+    onClose: function() {
+      console.log('Closing ViewContactDialogView');
+      // Unbind model events.
+      this.model.off('change', this.render);
+    },
+    render: function() {
+      var self = this;
+      this.$el.html(this._template({ contact: this.model.attributes }));
+      this.$el.dialog({ 
+        title: 'View',
+        modal: true,
+        buttons: [
+          {
+            text: 'Edit',
+            click: function(event, ui) {
+              self.editContact();
+            }
+          },
+          {
+            text: 'Delete',
+            click: function(event, ui) {
+              self.deleteContact();
+            }
+          },
+          {
+            text: 'Close',
+            click: function(event, ui) {
+              self.$el.dialog('close');
+            }
+          }
+        ],
+        close: function(event, ui) {
+          self.$el.dialog('destroy');
+          self.close();
+        }
+      });
+      return this;
+    }
+  });
   
   /**
    * View - Default View
@@ -1332,6 +1694,9 @@ MyApp = (function(Backbone, $) {
       this.$el.append('<h3>Validation error</h3><textarea id="error" rows="5" cols="60"></textarea>');
       this.$el.append('<button>Save</button>');
       return this;
+    },
+    onClose: function() {
+      this.model.off('error', this.validationError);
     },
     saveContact: function() {
       this.model.set(
@@ -1404,7 +1769,7 @@ MyApp = (function(Backbone, $) {
             // Display contact edit form. Note that this.appView.showView() 
             // method is not used since this view contains its own method 
             // for closing itself.
-            var editContactFormView = new EditContactFormView({ model: model, currentPageUri: '/#' + self.pageManager.getCurrentUri() });
+            var editContactFormView = new EditContactFormView({ model: model, currentPageUri: '/#' + self.pageManager.getCurrentPageUri() });
           } 
         });
       }
@@ -1416,29 +1781,33 @@ MyApp = (function(Backbone, $) {
         // Display contact edit form. Note that this.appView.showView() 
         // method is not used since this view contains its own method 
         // for closing itself.
-        var editContactFormView = new EditContactFormView({ model: model, currentPageUri: '/#' + this.pageManager.getCurrentUri() });
+        var editContactFormView = new EditContactFormView({ model: model, currentPageUri: '/#' + this.pageManager.getCurrentPageUri() });
       }
       // Set browser URL to that of current page since this view opens 
       // within a dialog within the current page.
-      this.navigate(this.pageManager.getCurrentUri(), { trigger: false });
+      this.navigate(this.pageManager.getCurrentPageUri(), { trigger: false });
     },
     browse: function() {
-      this.pageManager.setCurrentUri(Backbone.history.getFragment());
+      // Set as current page.
+      this.pageManager.setCurrentPageUri(Backbone.history.getFragment());
       var contacts = new Contacts();
       var listContactsView = new ListContactsView({ collection: contacts });
       this.pageManager.showView(listContactsView);
     },
     viewContact: function(id) {
-      // Set id to the value when more than one argument present.  This occurs in the case of routes such as '/#orgs/:orgName/view/:id', where id is the second argument.
+      // Set id to the value when more than one argument present.  This 
+      // occurs in the case of routes such as '/#orgs/:orgName/view/:id', 
+      // where id is the second argument.
       id = _.last(arguments);
       
       var model = new Contact({ 
         _id: id,
         validationDisabled: true
       });
-      this.pageManager.setCurrentUri(Backbone.history.getFragment());
-      var displayContactView = new DisplayContactView({ model: model, currentPageUri: '/#' + this.pageManager.getCurrentUri() });
-      this.pageManager.showView(displayContactView);
+      // Do not change the URL in the browser, as this View opens in a 
+      // dialog rather than a page.  
+      this.navigate(this.pageManager.getCurrentPageUri(), { trigger: false });
+      var displayContactView = new DisplayContactView({ model: model, currentPageUri: '/#' + this.pageManager.getCurrentPageUri() });
     },
     defaultPage: function(path) {
       var contact = new Contact({
@@ -1478,7 +1847,9 @@ MyApp = (function(Backbone, $) {
       this.$content.html('Home');
     },
     viewOrgs: function(orgName, id) {
-      this.$content.html('Orgs');
+      // Set as current page.
+      this.pageManager.setCurrentPageUri(Backbone.history.getFragment());
+      // Initialize collection of orgs.
       var orgs = new Orgs();
       var orgsListView = new OrgsListView({ collection: orgs }); 
       this.pageManager.showView(orgsListView);
@@ -1495,7 +1866,7 @@ MyApp = (function(Backbone, $) {
       // Extract parent page info from URI.
       var temp = uri.split('/', 1);
       var parentUri = temp[0];
-      console.log(parentUri);
+//      console.log(parentUri);
       this.navigate(parentUri, { trigger: true });
     }
   });

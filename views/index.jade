@@ -1,13 +1,9 @@
 
 script(type='text/template', id='list-contact-tpl')
-  |  <li><a href="<%= uriRoot %>/view/<%- model.attributes._id %>"><%- model.attributes.given_name %> <%- model.attributes.surname %></a><button class="remove-contact-button">Remove</button></li>
-  |  <% console.log(uriRoot); %>
+  |  <a href="<%= uriRoot %>/view/<%- model.attributes._id %>"><%- model.attributes.given_name %> <%- model.attributes.surname %></a>
 
 script(type='text/template', id='display-contact-tpl')
   | <div id="view-contact-wrapper">
-  |   <h1><%- contact.given_name %> <%- contact.surname %></h1>
-  |   <button id="delete-contact-button">Delete</button>
-  |   <button id="edit-contact-button">Edit</button>
   |   <div>Surname: <%- contact.surname %></div>
   |   <div>Given name: <%- contact.given_name %></div>
   |   <div>Organization: <%- contact.org %></div>
