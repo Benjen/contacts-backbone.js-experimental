@@ -83,6 +83,10 @@ a.button span {
   float: left;
   padding-right: 15px;
 }
+.contacts-by-org {
+  margin: 10px 0;
+  padding-left: 10px; 
+}
 #popup ul {
   width: 200px;
   border: 1px solid grey;
