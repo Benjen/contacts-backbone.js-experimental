@@ -756,6 +756,7 @@ MyApp = (function(Backbone, $) {
    * View - List of organizations
    */
   var OrgsListView = Backbone.View.extend({
+    className: 'orgs-list',
     initialize: function() {
       _.bindAll(this, 'render');
       this.collection = this.options.collection;
@@ -792,7 +793,7 @@ MyApp = (function(Backbone, $) {
    * View - Contacts by org
    */
   var ListContactsByOrgView = Backbone.View.extend({
-    id: 'contacts-by-name',
+    className: 'contacts-by-org',
     initialize: function() {
       _.bindAll(this, 'render');
       // Get collection.
@@ -807,11 +808,11 @@ MyApp = (function(Backbone, $) {
     },
     render: function() {
       var self = this;
-      this.$el.html('');
+      this.$el.html('<ul></ul>');
       this.collection.each(function(contact, index) {
         var uriRoot = '/#orgs/' + encodeURIComponent(contact.get('org'));
         var listContactsItemView = new ListContactsItemView({ uriRoot: uriRoot, model: contact });
-        self.$el.append(listContactsItemView.render().el);
+        self.$('ul').append(listContactsItemView.render().el);
       });
       return this;
     }
@@ -1042,7 +1043,7 @@ MyApp = (function(Backbone, $) {
   });
   DialogManager.on('showDialog:edit', function(event) {
     console.log('showDialog:edit');
-    var editContactDialogView = new EditContactDialogView({ model: event.model });
+    var editContactDialogView = new EditContactDialogView({ model: event.model, mode: event.mode });
   });
   DialogManager.on('showDialog:delete', function(event) {
     console.log('showDialog:delete');
@@ -1137,6 +1138,9 @@ MyApp = (function(Backbone, $) {
       this.subViews = new Array();
       // Set options for new or existing contact.
       this.model = this.options.model;
+      // Set form mode. Mode effects how the dialog behaves based on whether 
+      //a contact is being edited or a new contact is being added.
+      this.mode = this.options.mode;
       // Prevent Model validation on this model.  This can be removed 
       // later when validation is required (e.g. when one is about to save 
       // the model). This prevents Model validation happening on model 
@@ -1208,8 +1212,11 @@ MyApp = (function(Backbone, $) {
           {
             text: 'Close',
             click: function(event, ui) {
-              // Return to view contact dialog.
-              DialogManager.trigger('showDialog:view', { model: self.model });
+              // Return to view contact dialog if editing an existing contact.
+              if (self.mode === 'edit') {
+                // Return to view contact dialog.
+                DialogManager.trigger('showDialog:view', { model: self.model });
+              }
               // Close dialog.
               self.$el.dialog('close');
             }
@@ -1242,7 +1249,10 @@ MyApp = (function(Backbone, $) {
           if (typeof response.flash !== 'undefined') {
             Messenger.trigger('new:messages', response.flash);
           }
-          DialogManager.trigger('showDialog:view', { model: model });
+          // Return to view contact dialog if editing an existing contact.
+          if (self.mode === 'edit') {
+            DialogManager.trigger('showDialog:view', { model: model });
+          }
           // Close dialog.
           self.$el.dialog('close');
         },
@@ -1293,7 +1303,7 @@ MyApp = (function(Backbone, $) {
     },
     editContact: function() {
       // Show edit contact dialog.
-      DialogManager.trigger('showDialog:edit', { model: this.model });
+      DialogManager.trigger('showDialog:edit', { model: this.model, mode: 'edit' });
       // Close this View.
       this.$el.dialog('close');
     },
@@ -1397,8 +1407,6 @@ MyApp = (function(Backbone, $) {
       'browse/edit/:id': 'addContact',
       'orgs': 'viewOrgs',
       'contact/add': 'addContact',
-//      'contact/view/:id': 'viewContact',
-//      'contact/delete/:id': 'confirmDelete',
       '*path': 'defaultPage'
     },
     initialize: function(options) {
@@ -1418,30 +1426,24 @@ MyApp = (function(Backbone, $) {
       if (typeof id !== 'undefined') {
         // Get Model data from server if is an existing contact.
         model = new Contact({ 
-          _id: id, 
-          validationDisabled: true
+          _id: id
         });
         model.parse = function(response) {
           return response.data;
         };
         model.fetch({ 
           success: function() {
-            // Display contact edit form. Note that this.appView.showView() 
-            // method is not used since this view contains its own method 
-            // for closing itself.
-            var editContactFormView = new EditContactFormView({ model: model, currentPageUri: '/#' + self.pageManager.getCurrentPageUri() });
+            // Display contact edit form. 
+//            var editContactFormView = new EditContactFormView({ model: model, currentPageUri: '/#' + self.pageManager.getCurrentPageUri() });
+            DialogManager.trigger('showDialog:edit', { model: model, mode: 'add' });
           } 
         });
       }
       else {
         // Create new Model.
-        model = new Contact({ 
-          validationDisabled: true 
-        });
-        // Display contact edit form. Note that this.appView.showView() 
-        // method is not used since this view contains its own method 
-        // for closing itself.
-        var editContactFormView = new EditContactFormView({ model: model, currentPageUri: '/#' + this.pageManager.getCurrentPageUri() });
+        model = new Contact();
+        // Display contact edit form. 
+        DialogManager.trigger('showDialog:edit', { model: model, mode: 'add' });
       }
       // Set browser URL to that of current page since this view opens 
       // within a dialog within the current page.
