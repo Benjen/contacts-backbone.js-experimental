@@ -1,6 +1,6 @@
 
 script(type='text/template', id='list-contact-tpl')
-  |  <a href="<%= uriRoot %>/view/<%- model.attributes._id %>"><%- model.attributes.given_name %> <%- model.attributes.surname %></a>
+  |  <a href="<%= uri %>/view/<%- model.attributes._id %>"><%- model.attributes.given_name %> <%- model.attributes.surname %></a>
 
 script(type='text/template', id='display-contact-tpl')
   | <div id="view-contact-wrapper">

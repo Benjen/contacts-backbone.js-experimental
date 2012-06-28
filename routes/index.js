@@ -398,7 +398,7 @@ exports.postContact = function(req, res) {
   var errors = new Array();
   var emails = new Array();
   //Save model to database.
-  contact.save(function(err) {
+  contact.save(function(err, data) {
     if (err) {
       console.log(err);
       res.json({ 
@@ -408,11 +408,16 @@ exports.postContact = function(req, res) {
       }, 500);
     }
     else {
-      res.json({ 
-        flash: [
-          { type: 'info', text: 'Contact saved' }
-        ]
-      }, 200);
+//      var extendedData =_.extend(data, { flash: [
+//        {
+//          type: 'info', 
+//          text: 'Contact saved'
+//        }
+//      ]});
+//      console.log(extendedData);
+//      data.flash = 'Saved';
+//      console.log(data);
+      res.json(data, 200);
     }
   });
 };

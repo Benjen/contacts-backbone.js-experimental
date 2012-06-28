@@ -70,6 +70,7 @@ MyApp = (function(Backbone, $) {
   // List events bound to eventAggregator.  These are simply placeholder functions
   // which are not directly utilized. Listing them in this manner is to help the 
   // developer understand which events are available through the eventAggregator.
+  eventAggregator.on('add:newContact', function() {});
   eventAggregator.on('click:addContact', function() {});
 //  eventAggregator.on('click:editContact', function() {});
   eventAggregator.on('click:menuButton', function() {});
@@ -229,6 +230,10 @@ MyApp = (function(Backbone, $) {
   
   /**
    * View - Individual list item for Contact in list view. 
+   * 
+   * Options sent to this view should include:
+   *   - Backbone.js Model to be rendered (i.e. Contact).
+   *   - URI of the current page (e.g. '/#browse').
    */
   var ListContactsItemView = Backbone.View.extend({
     tagName: 'li',
@@ -236,6 +241,7 @@ MyApp = (function(Backbone, $) {
       _.bindAll(this, 'onClose', 'removeContact', 'render', 'viewContact');
       // Add templates.
       this._template = _.template($('#list-contact-tpl').html());
+      this.baseUri = this.options.baseUri;
       this.model = options.model;
       this.model.on('destroy', this.removeContact);
     },
@@ -255,7 +261,7 @@ MyApp = (function(Backbone, $) {
       this.close();
     },
     render: function() {
-      this.$el.html($(this._template({ uriRoot: this.options.uriRoot, model: this.model})));
+      this.$el.html($(this._template({ uri: this.baseUri, model: this.model})));
       return this;
     },
     viewContact: function(event) {
@@ -267,16 +273,35 @@ MyApp = (function(Backbone, $) {
   
   /** 
    * View - List of contacts 
+   * 
+   * 
+   * This object requires a Collection to passed to it during initialization. 
+   * The view is rendered based on the Collection.
    */
   var ListContactsView = Backbone.View.extend({
     initialize: function() {
-      _.bindAll(this, 'render');
+      console.log('ListContactsView');
+      _.bindAll(this, 'addNewContact', 'render');
+      // Bind to add new contact event. This event occurs when 
+      // a new contact has been added to the system.
+      eventAggregator.on('add:newContact', this.addNewContact);
+      // Contains the URI of the current page.
+      this.baseUri = this.options.baseUri;
+      // Set Collection.
       this.collection = this.options.collection;
       this.collection.on('reset', this.render);
+      this.collection.on('add', this.render);
       this.collection.fetch();
+    },
+    addNewContact: function(event) {
+      console.log('...addNewContact...');
+      console.log(event.model.attributes);
+      this.collection.add(event.model);
     },
     onClose: function() {
       this.collection.off('reset', this.render);
+      this.collection.off('add', this.render);
+      eventAggregator.off('add:newContact', this.addNewContact);
     },
     render: function() {
       var self = this;
@@ -284,7 +309,7 @@ MyApp = (function(Backbone, $) {
       this.$el.html('<ul></ul>');
       this.collection.each(function(model, index) {
         // render list items.
-        var listContactsItemView = new ListContactsItemView({ uriRoot: '/#browse', model: model });
+        var listContactsItemView = new ListContactsItemView({ baseUri: self.baseUri, model: model });
         self.$('ul').append(listContactsItemView.render().el);
       });
       this.$el.fadeIn(500);
@@ -358,7 +383,7 @@ MyApp = (function(Backbone, $) {
       var newEmailField = { value: '' };
       // Clone Model's email attribute array. 
       var emails = _.clone(this.model.get('email'));
-      console.log(emails);
+//      console.log(emails);
       emails.push(newEmailField);
       // Add updated array to Model.
       this.model.set({ email: emails });
@@ -389,7 +414,7 @@ MyApp = (function(Backbone, $) {
      * Used for unbinding Model and Collection events.
      */
     onClose: function() {
-      console.log('closing EmailFieldsetView');
+//      console.log('closing EmailFieldsetView');
       eventAggregator.off('submit:contactEditForm', this.setEmailValues);
     },
     /**
@@ -591,7 +616,7 @@ MyApp = (function(Backbone, $) {
      * Used for unbinding Model and Collection events.
      */
     onClose: function() {
-      console.log('closing PhoneFieldsetView');
+//      console.log('closing PhoneFieldsetView');
       // Unbind to event aggregator.
       eventAggregator.off('submit:contactEditForm', this.setPhoneValues);
     },
@@ -719,6 +744,8 @@ MyApp = (function(Backbone, $) {
     initialize: function() {
       _.bindAll(this, 'onClick', 'render');
       this.model = this.options.model;
+      // Create base URI component for links on this page. (e.g. '/#orgs/ORG_NAME')
+      this.baseUri = this.options.pageRootUri + '/' + encodeURIComponent(this.model.get('name'));
       // Create array for tracking subviews.
       /*var subViews = new Array();*/
     },
@@ -728,26 +755,25 @@ MyApp = (function(Backbone, $) {
     onClick: function(event) {
       // Prevent default event from firing.
       event.preventDefault();
-      if (typeof this.listContactsByOrgView === 'undefined') {
-        // Create list of contacts.
+      if (typeof this.listContactsView === 'undefined') {
+        // Create collection of contacts.
         var contacts = new ContactsByOrg({ url: '/orgs.json/' + encodeURIComponent(this.model.get('name')) });
-        this.listContactsByOrgView = new ListContactsByOrgView({ collection: contacts });
-        // Append list of contacts view to this view.
-        this.$el.append(this.listContactsByOrgView.render().el);
+        this.listContactsView = new ListContactsView({ collection: contacts, baseUri: this.baseUri });
+        this.$el.append(this.listContactsView.render().el);
       }
       else {
         // Close View.
-        this.listContactsByOrgView.close();
-        // Destroy property this.listContactsByOrgView.
-        delete this.listContactsByOrgView;
+        this.listContactsView.close();
+        // Destroy property this.listContactsView.
+        delete this.listContactsView;
       }
     },
     onClose: function() {
-      console.log('Closing OrgItemView');
+//      console.log('Closing OrgItemView');
     },
     render: function() {
       // TODO: set proper value for href. Currently using a dummy placeholder
-      this.$el.html('<a class="test" href="/#dummy">' + this.model.get('name') + '</a>');
+      this.$el.html('<a class="test" href="' + this.baseUri + '">' + this.model.get('name') + '</a>');
       return this;
     }
   });
@@ -758,7 +784,9 @@ MyApp = (function(Backbone, $) {
   var OrgsListView = Backbone.View.extend({
     className: 'orgs-list',
     initialize: function() {
+      console.log('OrgsListView');
       _.bindAll(this, 'render');
+      this.pageRootUri = this.options.pageRootUri;
       this.collection = this.options.collection;
       this.collection.on('reset', this.render);
       // Populate collection with values from server.
@@ -766,13 +794,13 @@ MyApp = (function(Backbone, $) {
     },
     onClose: function() {
       this.collection.off('reset', this.render);
-      console.log('Closing OrgsListView');
+//      console.log('Closing OrgsListView');
     },
     render: function() {
       var self = this;
       this.$el.html('<ul></ul>');
       this.collection.each(function(org, index) {
-        var orgItemView = new OrgItemView({ model: org });
+        var orgItemView = new OrgItemView({ model: org, pageRootUri: self.pageRootUri });
         self.$('ul').append(orgItemView.render().el);
       });
       return this;
@@ -781,42 +809,45 @@ MyApp = (function(Backbone, $) {
 
   /**
    * Collection - contacts by org
+   * 
+   * Provides a collection of contacts belonging to a given org.
    */
   var ContactsByOrg = Backbone.Collection.extend({
     model: Contact,
     initialize: function(options) {
       this.url = options.url;
+      console.log(this.url);
     }
   });
   
   /**
    * View - Contacts by org
    */
-  var ListContactsByOrgView = Backbone.View.extend({
-    className: 'contacts-by-org',
-    initialize: function() {
-      _.bindAll(this, 'render');
-      // Get collection.
-      this.collection = this.options.collection;
-      this.collection.on('reset', this.render);
-      this.collection.fetch();
-    },
-    onClose: function() {
-      // Unbind other objects.
-      this.collection.off('reset', this.render);
-      console.log('closing ListContactsByOrgView');
-    },
-    render: function() {
-      var self = this;
-      this.$el.html('<ul></ul>');
-      this.collection.each(function(contact, index) {
-        var uriRoot = '/#orgs/' + encodeURIComponent(contact.get('org'));
-        var listContactsItemView = new ListContactsItemView({ uriRoot: uriRoot, model: contact });
-        self.$('ul').append(listContactsItemView.render().el);
-      });
-      return this;
-    }
-  });
+//  var ListContactsByOrgView = Backbone.View.extend({
+//    className: 'contacts-by-org',
+//    initialize: function() {
+//      _.bindAll(this, 'render');
+//      // Get collection.
+//      this.collection = this.options.collection;
+//      this.collection.on('reset', this.render);
+//      this.collection.fetch();
+//    },
+//    onClose: function() {
+//      // Unbind other objects.
+//      this.collection.off('reset', this.render);
+//      console.log('closing ListContactsByOrgView');
+//    },
+//    render: function() {
+//      var self = this;
+//      this.$el.html('<ul></ul>');
+//      this.collection.each(function(contact, index) {
+//        var uriRoot = '/#orgs/' + encodeURIComponent(contact.get('org'));
+//        var listContactsItemView = new ListContactsItemView({ uriRoot: uriRoot, model: contact });
+//        self.$('ul').append(listContactsItemView.render().el);
+//      });
+//      return this;
+//    }
+//  });
   
   /**
    * Model - Menu Item
@@ -1038,15 +1069,12 @@ MyApp = (function(Backbone, $) {
    */
   var DialogManager = _.extend({}, Backbone.Events);
   DialogManager.on('showDialog:view', function(event) {
-    console.log('showDialog:view');
     var viewContactDialogView = new ViewContactDialogView({ model: event.model });
   });
   DialogManager.on('showDialog:edit', function(event) {
-    console.log('showDialog:edit');
     var editContactDialogView = new EditContactDialogView({ model: event.model, mode: event.mode });
   });
   DialogManager.on('showDialog:delete', function(event) {
-    console.log('showDialog:delete');
     var deleteContactConfirmationDialog = new DeleteContactConfirmationDialog({ model: event.model });
   });
   
@@ -1061,7 +1089,7 @@ MyApp = (function(Backbone, $) {
       this.render();
     },
     onClose: function() {
-      console.log('Closing DeleteContactConfirmationDialog');
+//      console.log('Closing DeleteContactConfirmationDialog');
     },
     render: function() {
       var self = this;
@@ -1129,7 +1157,7 @@ MyApp = (function(Backbone, $) {
   var EditContactDialogView = Backbone.View.extend({
     id: 'edit-contact-dialog',
     initialize: function(options) {
-      _.bindAll(this, 'onClose', 'render', 'saveContact');
+      _.bindAll(this, 'modelChanged', 'onClose', 'render', 'saveContact');
       // Add templates.
       this._editFormTemplate = _.template($('#edit-contact-form-tpl').html());
       this._emailFieldTemplate = _.template($('#email-field-tpl').html());
@@ -1149,15 +1177,28 @@ MyApp = (function(Backbone, $) {
       this.model.set('validationDisabled', true);
       // Bind with Model validation error event.
       this.model.on('error', this.formError);
+//      this.model.on('sync', this.modelChanged);
       this.render();
     },
     formError: function(model, error) {
       console.log(error);
     },
+    modelChanged: function() {
+      console.log('modelSynced');
+      // Return to view contact dialog if editing an existing contact.
+      if (this.mode === 'edit') {
+        DialogManager.trigger('showDialog:view', { model: this.model });
+      }
+      else if (this.mode === 'add') {
+        console.log(this.model);
+        eventAggregator.trigger('add:newContact', { model: this.model });
+      }
+    },
     onClose: function() {
-      console.log('closing EditContactDialogView');
+//      console.log('closing EditContactDialogView');
       // Unbind with Model validation error event.
       this.model.off('error', this.formError);
+//      this.model.off('change', this.modelChanged);
       // Close subviews.
       _.each(this.subViews, function(view, index) {
         view.close();
@@ -1253,6 +1294,9 @@ MyApp = (function(Backbone, $) {
           if (self.mode === 'edit') {
             DialogManager.trigger('showDialog:view', { model: model });
           }
+          else if (self.mode === 'add') {
+            eventAggregator.trigger('add:newContact', { model: model });
+          }
           // Close dialog.
           self.$el.dialog('close');
         },
@@ -1308,7 +1352,6 @@ MyApp = (function(Backbone, $) {
       this.$el.dialog('close');
     },
     onClose: function() {
-      console.log('Closing ViewContactDialogView');
       // Unbind model events.
       this.model.off('change', this.render);
     },
@@ -1453,7 +1496,7 @@ MyApp = (function(Backbone, $) {
       // Set as current page.
       this.pageManager.setCurrentPageUri(Backbone.history.getFragment());
       var contacts = new Contacts();
-      var listContactsView = new ListContactsView({ collection: contacts });
+      var listContactsView = new ListContactsView({ collection: contacts, baseUri: '/#' + this.pageManager.getCurrentPageUri() });
       this.pageManager.showView(listContactsView);
     },
     defaultPage: function(path) {
@@ -1498,7 +1541,7 @@ MyApp = (function(Backbone, $) {
       this.pageManager.setCurrentPageUri(Backbone.history.getFragment());
       // Initialize collection of orgs.
       var orgs = new Orgs();
-      var orgsListView = new OrgsListView({ collection: orgs }); 
+      var orgsListView = new OrgsListView({ collection: orgs, pageRootUri: '/#' + this.pageManager.getCurrentPageUri() }); 
       this.pageManager.showView(orgsListView);
     },
     /**

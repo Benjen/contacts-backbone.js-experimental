@@ -11,7 +11,7 @@ function defineModels(mongoose, fn) {
    */
   Email = new Schema({
     'value': String
-  });
+  }, { strict: true });
   
   mongoose.model('Email', Email);
   
@@ -24,7 +24,7 @@ function defineModels(mongoose, fn) {
       type: String, 
       enum: ['work', 'home', 'other'] 
     }
-  });
+  }, { strict: true });
   
   mongoose.model('Phone', Phone);
   
@@ -37,7 +37,7 @@ function defineModels(mongoose, fn) {
     'city': String,
     'country': String,
     'postcode': String
-  });
+  }, { strict: true });
   
   mongoose.model('Address', Address);
   
@@ -51,7 +51,7 @@ function defineModels(mongoose, fn) {
      'phone': [ Phone ],
      'email': [ Email ],
      'address': [ Address ]
-   });
+   }, { strict: true });
   
 //   Contact.pre('save', function(next) {
 //     console.log(this);
